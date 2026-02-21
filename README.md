@@ -34,6 +34,8 @@
 
 ---
 
+![CASIMIR Interface](assets/screenshot.jpg)
+
 ## About
 
 **CASIMIR** is a professional password generator userscript designed for advanced security and true randomness. It leverages quantum mechanics (ANU QRNG) to generate unpredictable sequences, bypassing the limitations of standard pseudo-random number generators.
