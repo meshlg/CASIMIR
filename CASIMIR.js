@@ -1,8 +1,10 @@
 ﻿// ==UserScript==
 // @name         CASIMIR - Cryptographic Authentication System In Micro Interval Randomness
+// @name:ru      CASIMIR - Криптографическая система аутентификации на основе микроинтервальной случайности
 // @namespace    http://tampermonkey.net/
 // @version      1.0.0.0358
 // @description  Premium password generator with quantum entropy, advanced analysis, HIBP breach checks, and a fully opaque dark UI.
+// @description:ru  Профессиональный генератор паролей с квантовой энтропией, расширенным анализом и проверкой утечек HIBP.
 // @author       meshlg
 // @match        *://*/*
 // @grant        GM_setClipboard
@@ -13,6 +15,11 @@
 // @connect      qrng.anu.edu.au
 // @connect      api.pwnedpasswords.com
 // @connect      api.haveibeenpwned.com
+// @license      MIT
+// @homepageURL  https://github.com/meshlg/CASIMIR
+// @supportURL   https://github.com/meshlg/CASIMIR/issues
+// @updateURL    https://github.com/meshlg/CASIMIR/raw/main/CASIMIR.js
+// @downloadURL  https://github.com/meshlg/CASIMIR/raw/main/CASIMIR.js
 // ==/UserScript==
 
 (function () {
