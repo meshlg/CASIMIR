@@ -18,8 +18,8 @@
 // @license      MIT
 // @homepageURL  https://github.com/meshlg/CASIMIR
 // @supportURL   https://github.com/meshlg/CASIMIR/issues
-// @updateURL    https://github.com/meshlg/CASIMIR/raw/main/CASIMIR.js
-// @downloadURL  https://github.com/meshlg/CASIMIR/raw/main/CASIMIR.js
+// @updateURL    https://greasyfork.org/en/scripts/566920-casimir-cryptographic-authentication-system-in-micro-interval-randomness
+// @downloadURL  https://greasyfork.org/en/scripts/566920-casimir-cryptographic-authentication-system-in-micro-interval-randomness
 // ==/UserScript==
 
 (function () {

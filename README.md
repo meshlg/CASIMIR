@@ -7,6 +7,7 @@
 [Русский](README-ru.md) | [English](README.md)
 
 <p align="center">
+  <a href="https://greasyfork.org/en/scripts/566920-casimir-cryptographic-authentication-system-in-micro-interval-randomness"><img src="https://img.shields.io/badge/Greasy%20Fork-Install-blue" alt="Greasy Fork"></a>
   <a href="https://www.tampermonkey.net/"><img src="https://img.shields.io/badge/Tampermonkey-Supported-green" alt="Tampermonkey"></a>
   <a href="https://www.greasespot.net/"><img src="https://img.shields.io/badge/Greasemonkey-Supported-orange" alt="Greasemonkey"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/meshlg/CASIMIR" alt="License"></a>
