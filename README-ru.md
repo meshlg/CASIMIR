@@ -68,7 +68,7 @@
 
 ### Установка
 
-1. Установите расширение для пользовательских скриптов в свой браузер
+1. Установите расширение для пользовательских скриптов в свой браузер - <a href="https://greasyfork.org/en/scripts/566920-casimir-cryptographic-authentication-system-in-micro-interval-randomness"><img src="https://img.shields.io/badge/Greasy%20Fork-Install-blue" alt="Greasy Fork"></a>
 2. Нажмите кнопку **Raw** на файле `CASIMIR.js` в этом репозитории
 3. Браузер предложит установить скрипт
 4. Нажмите `Alt + C` на любой веб-странице, чтобы открыть генератор

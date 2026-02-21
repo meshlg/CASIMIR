@@ -68,7 +68,7 @@
 
 ### Installation
 
-1. Install a userscript manager extension for your browser
+1. Install a userscript manager extension for your browser - <a href="https://greasyfork.org/en/scripts/566920-casimir-cryptographic-authentication-system-in-micro-interval-randomness"><img src="https://img.shields.io/badge/Greasy%20Fork-Install-blue" alt="Greasy Fork"></a>
 2. Click the **Raw** button on `CASIMIR.js` in this repository
 3. Your browser will prompt you to install the script
 4. Press `Alt + C` on any webpage to open the generator
