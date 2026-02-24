@@ -2,7 +2,7 @@
 // @name         CASIMIR - Cryptographic Authentication System In Micro Interval Randomness
 // @name:ru      CASIMIR - Криптографическая система аутентификации на основе микроинтервальной случайности
 // @namespace    http://tampermonkey.net/
-// @version      1.0.1.1159
+// @version      1.0.1.1814
 // @description  Premium password generator with quantum entropy, advanced analysis, HIBP breach checks, and a fully opaque dark UI.
 // @description:ru  Профессиональный генератор паролей с квантовой энтропией, расширенным анализом и проверкой утечек HIBP.
 // @author       meshlg
@@ -229,7 +229,8 @@
         font-size:11px;
         line-height:1.4;
         letter-spacing:.1px;
-        white-space:normal;
+        white-space:pre-wrap;
+        width:max-content;
         max-width:260px;
         pointer-events:none;
         opacity:0;
@@ -256,33 +257,6 @@
       .pg-root{
         position: relative;
         pointer-events: auto;
-      }
-      .pg-root::before,
-      .pg-root::after{
-        content:"";
-        position:absolute;
-        pointer-events:none;
-        z-index:0;
-        filter:blur(28px);
-        opacity:0;
-        transition:opacity .18s ease;
-      }
-      .pg-root.panel-open::before,
-      .pg-root.panel-open::after{ opacity:.28; }
-
-      .pg-root::before{
-        width:140px;
-        height:140px;
-        top:-26px;
-        right:12px;
-        background:radial-gradient(circle, var(--brand), transparent 72%);
-      }
-      .pg-root::after{
-        width:130px;
-        height:130px;
-        bottom:56px;
-        left:-18px;
-        background:radial-gradient(circle, var(--quantum), transparent 74%);
       }
 
       /* Floating toggle */
@@ -319,6 +293,9 @@
         height: 22px;
         fill: var(--brand);
         transition: fill .2s ease;
+        display: block;
+        margin: auto;
+        transform: translateX(-2px);
       }
       .quantum-active #pg-icon{ fill: var(--quantum); }
 
@@ -341,16 +318,6 @@
         overflow: hidden;
         transform: translateZ(0);
         backdrop-filter: blur(12px);
-      }
-      #pg-panel::before{
-        content:"";
-        position:absolute;
-        inset:0;
-        pointer-events:none;
-        background:
-          radial-gradient(160px 100px at 88% 3%, color-mix(in srgb, var(--brand) 14%, transparent), transparent 74%),
-          radial-gradient(180px 120px at 8% 96%, color-mix(in srgb, var(--quantum) 14%, transparent), transparent 76%);
-        z-index:0;
       }
 
       .pg-scroll{
@@ -414,6 +381,7 @@
 
       .pg-close:active{ transform:scale(.94); }
       .pg-close:focus-visible{ box-shadow:var(--ring); }
+      #pg-lang-toggle{ width:auto; padding:0 8px; white-space:nowrap; font-size:12px; font-weight:600; }
 
       /* Toast */
       #pg-toast{
@@ -705,6 +673,63 @@
       .pg-strength-icon.warn{ background:var(--warn-bg); color:var(--warn); }
       .pg-strength-text{ color:var(--text); letter-spacing:.1px; }
 
+      /* Policy scorecard (explainable verdict) */
+      .pg-policy-card{
+        display:flex; flex-direction:column; gap:8px;
+        padding:10px; background:var(--bg2); border-radius:var(--r10);
+        border:1px solid color-mix(in srgb, var(--stroke) 78%, transparent);
+      }
+      .pg-policy-head{
+        font-size:10px; font-weight:600; color:var(--muted);
+        letter-spacing:.2px; text-transform:uppercase;
+      }
+      .pg-policy-list{ display:flex; flex-direction:column; gap:6px; }
+      .pg-policy-item{
+        display:flex; align-items:flex-start; gap:8px;
+        padding:8px 10px; border-radius:var(--r8);
+        background:var(--bg1); border:1px solid var(--stroke);
+      }
+      .pg-policy-item.pass{ border-color:color-mix(in srgb, var(--success) 44%, transparent); background:color-mix(in srgb, var(--success-bg) 58%, var(--bg1)); }
+      .pg-policy-item.warn{ border-color:color-mix(in srgb, var(--warn) 44%, transparent); background:color-mix(in srgb, var(--warn-bg) 58%, var(--bg1)); }
+      .pg-policy-item.risk{ border-color:color-mix(in srgb, var(--danger) 44%, transparent); background:color-mix(in srgb, var(--danger-bg) 58%, var(--bg1)); }
+      .pg-policy-icon{ width:16px; font-size:13px; line-height:1.2; text-align:center; flex-shrink:0; margin-top:1px; }
+      .pg-policy-main{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+      .pg-policy-name{ font-size:11px; color:var(--text); font-weight:600; letter-spacing:.15px; }
+      .pg-policy-desc{ font-size:10px; color:var(--text-dim); line-height:1.35; }
+      .pg-policy-details{
+        margin-top:4px;
+        border-top:1px dashed color-mix(in srgb, var(--stroke) 76%, transparent);
+        padding-top:4px;
+      }
+      .pg-policy-details > summary{
+        cursor:pointer;
+        font-size:10px;
+        color:var(--text-dim);
+        list-style:none;
+        user-select:none;
+      }
+      .pg-policy-details > summary::-webkit-details-marker{ display:none; }
+      .pg-policy-details > summary::before{
+        content:'▸';
+        display:inline-block;
+        margin-right:6px;
+        color:var(--muted);
+        transition:transform .15s ease;
+      }
+      .pg-policy-details[open] > summary::before{ transform:rotate(90deg); }
+      .pg-policy-points{
+        margin:6px 0 0;
+        padding-left:16px;
+        display:flex;
+        flex-direction:column;
+        gap:4px;
+      }
+      .pg-policy-points li{
+        font-size:10px;
+        color:var(--text-dim);
+        line-height:1.35;
+      }
+
       /* Recommendations */
       .pg-recommendations{ display:flex; flex-direction:column; gap:6px; }
       .pg-recommendation{
@@ -904,7 +929,7 @@
               CASIMIR
               <span id="pg-badge">QUANTUM</span>
             </h3>
-            <p class="pg-subtitle"><span data-i18n="subtitle">Cryptographic Authentication System In Micro Interval Randomness</span> · 1.0.1.1159</p>
+            <p class="pg-subtitle"><span data-i18n="subtitle">Cryptographic Authentication System In Micro Interval Randomness</span> · 1.0.1.1814</p>
           </div>
           <div class="pg-header-controls">
             <button class="pg-close" id="pg-lang-toggle" aria-label="Toggle language">EN</button>
@@ -1009,7 +1034,7 @@
               <div class="pg-acc-item">
                 <div class="pg-acc-title"><span class="pg-acc-danger">▶</span> <span data-i18n="w_key">Кейлоггеры и Трояны</span></div>
                 <span data-i18n="w_key_d">Вирус может записать клавиатуру или украсть пароль в момент нажатия кнопки "Скопировать" (мониторинг буфера обмена).</span>
-                <span class="pg-acc-solution" data-i18n="w_key_s">Решение: Антивирусы и 2FA (двухфакторная авторизация).</span>
+                <span class="pg-acc-solution" data-i18n="w_key_s">Решение: Антивирусы и 2FA.</span>
               </div>
               <div class="pg-acc-item">
                 <div class="pg-acc-title"><span class="pg-acc-warn">▶</span> <span data-i18n="w_time">Атака по времени (Timing attack)</span></div>
@@ -1168,6 +1193,51 @@
                 </div>
               </div>
 
+              <div class="pg-policy-card" id="pg-policy-scorecard">
+                <div class="pg-policy-head" data-i18n="policy_title">Policy scorecard</div>
+                <div class="pg-policy-list">
+                  <div class="pg-policy-item" id="pg-policy-nist">
+                    <span class="pg-policy-icon" id="pg-policy-nist-icon">•</span>
+                    <div class="pg-policy-main">
+                      <div class="pg-policy-name" data-i18n="policy_nist_label">NIST-like рекомендации</div>
+                      <div class="pg-policy-desc" id="pg-policy-nist-text" data-i18n="policy_waiting">Ожидание...</div>
+                      <details class="pg-policy-details" id="pg-policy-nist-details">
+                        <summary data-i18n="policy_details_btn">Подробнее</summary>
+                        <ul class="pg-policy-points" id="pg-policy-nist-points">
+                          <li data-i18n="policy_waiting">Ожидание...</li>
+                        </ul>
+                      </details>
+                    </div>
+                  </div>
+                  <div class="pg-policy-item" id="pg-policy-patterns">
+                    <span class="pg-policy-icon" id="pg-policy-patterns-icon">•</span>
+                    <div class="pg-policy-main">
+                      <div class="pg-policy-name" data-i18n="policy_patterns_label">Повторяемые паттерны</div>
+                      <div class="pg-policy-desc" id="pg-policy-patterns-text" data-i18n="policy_waiting">Ожидание...</div>
+                      <details class="pg-policy-details" id="pg-policy-patterns-details">
+                        <summary data-i18n="policy_details_btn">Подробнее</summary>
+                        <ul class="pg-policy-points" id="pg-policy-patterns-points">
+                          <li data-i18n="policy_waiting">Ожидание...</li>
+                        </ul>
+                      </details>
+                    </div>
+                  </div>
+                  <div class="pg-policy-item" id="pg-policy-corpus">
+                    <span class="pg-policy-icon" id="pg-policy-corpus-icon">•</span>
+                    <div class="pg-policy-main">
+                      <div class="pg-policy-name" data-i18n="policy_corpus_label">Схожесть с common corpus</div>
+                      <div class="pg-policy-desc" id="pg-policy-corpus-text" data-i18n="policy_waiting">Ожидание...</div>
+                      <details class="pg-policy-details" id="pg-policy-corpus-details">
+                        <summary data-i18n="policy_details_btn">Подробнее</summary>
+                        <ul class="pg-policy-points" id="pg-policy-corpus-points">
+                          <li data-i18n="policy_waiting">Ожидание...</li>
+                        </ul>
+                      </details>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- HIBP Breach Check -->
               <div class="pg-breach-section">
                 <div class="pg-breach-header">
@@ -1249,6 +1319,21 @@
     const statLength = shadow.getElementById('pg-stat-length');
     const statUnique = shadow.getElementById('pg-stat-unique');
     const statScore = shadow.getElementById('pg-stat-score');
+    const policyNist = shadow.getElementById('pg-policy-nist');
+    const policyNistIcon = shadow.getElementById('pg-policy-nist-icon');
+    const policyNistText = shadow.getElementById('pg-policy-nist-text');
+    const policyNistDetails = shadow.getElementById('pg-policy-nist-details');
+    const policyNistPoints = shadow.getElementById('pg-policy-nist-points');
+    const policyPatterns = shadow.getElementById('pg-policy-patterns');
+    const policyPatternsIcon = shadow.getElementById('pg-policy-patterns-icon');
+    const policyPatternsText = shadow.getElementById('pg-policy-patterns-text');
+    const policyPatternsDetails = shadow.getElementById('pg-policy-patterns-details');
+    const policyPatternsPoints = shadow.getElementById('pg-policy-patterns-points');
+    const policyCorpus = shadow.getElementById('pg-policy-corpus');
+    const policyCorpusIcon = shadow.getElementById('pg-policy-corpus-icon');
+    const policyCorpusText = shadow.getElementById('pg-policy-corpus-text');
+    const policyCorpusDetails = shadow.getElementById('pg-policy-corpus-details');
+    const policyCorpusPoints = shadow.getElementById('pg-policy-corpus-points');
     const distUpper = shadow.getElementById('pg-dist-upper');
     const distLower = shadow.getElementById('pg-dist-lower');
     const distNumbers = shadow.getElementById('pg-dist-numbers');
@@ -1305,7 +1390,7 @@
         subtitle: 'Cryptographic Authentication System In Micro Interval Randomness',
         theme_tip: 'Переключить тему',
         close_tip: 'Закрыть панель (Esc)',
-        output_ph: 'Нажмите Генерировать — пароль появится здесь',
+        output_ph: 'Нажмите Generate — пароль появится здесь',
         copy_btn: 'Скопировать',
         mode_label: 'Режим',
         quantum_tip: 'Использовать ANU QRNG для истинно-случайной генерации',
@@ -1325,7 +1410,7 @@
         acc_q_desc: 'В отличие от стандартного Math.random(), который предсказуем, CASIMIR запрашивает истинно случайные числа, полученные из измерения квантовых флуктуаций вакуума в лаборатории ANU.',
         acc_l_title: '2. Идеальное распределение (Rejection Sampling)',
         acc_l_desc: 'Алгоритм генерации CASIMIR использует математически безупречный метод отсева (Rejection Sampling) для устранения «смещения по модулю» (modulo bias). Вероятность выпадения любого символа из алфавита абсолютно одинакова.',
-        acc_h_title: '3. Полная приватность (Хэширование k-Anonymity)',
+        acc_h_title: '3. Полная приватность (k-Anonymity Hashing)',
         acc_h_desc: 'Когда вы проверяете пароль в базе HIBP, скрипт хэширует его локально по алгоритму SHA-1 и отправляет только первые 5 символов хэша. Никто, включая сервис HIBP, никогда не узнает ваш полный пароль.',
 
         analysis_label: 'Анализ стойкости',
@@ -1353,10 +1438,16 @@
         t_copy_fail: 'Не удалось скопировать. Нажми Ctrl+C.',
         t_mix: 'Настройки перемешаны.',
         t_err: 'Ошибка генерации. Подробности в консоли.',
+        t_user_aware_retry: 'Username-aware режим: пересобрал пароль без логина/email/домена.',
 
         // UI labels
         show_btn: 'Показать', hide_btn: 'Скрыть', clear_btn: 'Очистить',
         overall_rate: 'Общая оценка',
+        policy_title: 'Оценочный лист политики',
+        policy_nist_label: 'NIST-like рекомендации',
+        policy_patterns_label: 'Повторяемые паттерны',
+        policy_corpus_label: 'Схожесть с "common corpus"',
+        policy_waiting: 'Ожидание...',
         hint_msg: 'Для лучшей безопасности используйте 16–24 символа и все классы символов.',
         upper_tip: 'Заглавные буквы (A–Z) — +26 символов',
         lower_tip: 'Строчные буквы (a–z) — +26 символов',
@@ -1377,7 +1468,33 @@
         w_time_s: 'Решение: Серверные фиксы (crypto.timingSafeEqual).',
         w_sess: 'Session Hijacking (Угон Cookie)',
         w_sess_d: 'Хакер крадет ваш токен (Cookie) и заходит на сайт без пароля.',
-        w_sess_s: 'Решение: Регулярный разлогин и очистка сессий браузера.'
+        w_sess_s: 'Решение: Регулярный разлогин и очистка сессий браузера.',
+
+        // Policy scorecard
+        policy_details_btn: 'Подробнее',
+        policy_nist_summary_tpl: 'NIST-like: {passed}/{total} базовых критериев',
+        policy_nist_rule_len: 'Длина 12+ символов: {state}',
+        policy_nist_rule_common: 'Не входит в распространенные пароли: {state}',
+        policy_nist_rule_user: 'Не содержит логин/email/домен/имя: {state}',
+        policy_nist_rule_critical: 'Нет критических предсказуемых паттернов: {state}',
+        policy_nist_rule_entropy: 'Энтропия не ниже 60 бит: {state}',
+        policy_nist_rule_recommended: 'Рекомендация 16+ символов: {state}',
+        policy_patterns_clean: 'Предсказуемые паттерны не обнаружены',
+        policy_patterns_found_tpl: 'Найдено паттернов: {count} (критичный: {critical}, высокая важность: {high})',
+        policy_patterns_detail_count: 'Всего предсказуемых паттернов: {count}',
+        policy_patterns_detail_critical: 'Критичных паттернов: {critical}',
+        policy_patterns_detail_high: 'Паттернов высокой важности: {high}',
+        policy_corpus_summary_tpl: 'Схожесть с "common corpus": {similarity}% ({level})',
+        policy_corpus_detail_similarity: 'Итоговая схожесть: {similarity}%',
+        policy_corpus_detail_dictionary: 'Словарных совпадений: {count}',
+        policy_corpus_detail_fragment: 'Длина наибольшего общего фрагмента: {length}',
+        policy_level_low: 'низкая',
+        policy_level_medium: 'средняя',
+        policy_level_high: 'высокая',
+        policy_state_pass: 'да',
+        policy_state_fail: 'нет',
+        rec_user_context_title: 'Пароль содержит данные пользователя (логин/email/домен/имя)',
+        rec_user_context_detail_tpl: 'Совпадения: {matches}. Такие пароли первыми проверяются в таргетированных атаках.',
       },
       en: {
         subtitle: 'Cryptographic Authentication System In Micro Interval Randomness',
@@ -1431,10 +1548,16 @@
         t_copy_fail: 'Failed to copy. Press Ctrl+C.',
         t_mix: 'Settings randomized.',
         t_err: 'Generation error. See console details.',
+        t_user_aware_retry: 'Username-aware mode: regenerated password to avoid login/email/domain/name overlap.',
 
         // UI labels
         show_btn: 'Show', hide_btn: 'Hide', clear_btn: 'Clear',
         overall_rate: 'Overall Rating',
+        policy_title: 'Policy scorecard',
+        policy_nist_label: 'NIST-like recommendations',
+        policy_patterns_label: 'Repeatable patterns',
+        policy_corpus_label: 'Common corpus similarity',
+        policy_waiting: 'Awaiting...',
         hint_msg: 'For best security, use 16–24 characters with all character classes.',
         upper_tip: 'Uppercase (A–Z) — +26 chars',
         lower_tip: 'Lowercase (a–z) — +26 chars',
@@ -1455,7 +1578,33 @@
         w_time_s: 'Solution: Server-side fixes (crypto.timingSafeEqual).',
         w_sess: 'Session Hijacking (Cookie Theft)',
         w_sess_d: 'An attacker steals your auth token (Cookie) and accesses the site without a password.',
-        w_sess_s: 'Solution: Regular log-outs and browser session cleanup.'
+        w_sess_s: 'Solution: Regular log-outs and browser session cleanup.',
+
+        // Policy scorecard
+        policy_details_btn: 'Details',
+        policy_nist_summary_tpl: 'NIST-like: {passed}/{total} baseline checks',
+        policy_nist_rule_len: 'Length 12+ characters: {state}',
+        policy_nist_rule_common: 'Not in common password corpus: {state}',
+        policy_nist_rule_user: 'Does not contain login/email/domain/name: {state}',
+        policy_nist_rule_critical: 'No critical predictable patterns: {state}',
+        policy_nist_rule_entropy: 'Entropy at least 60 bits: {state}',
+        policy_nist_rule_recommended: 'Recommended 16+ length: {state}',
+        policy_patterns_clean: 'No predictable patterns detected',
+        policy_patterns_found_tpl: 'Patterns found: {count} (critical: {critical}, high: {high})',
+        policy_patterns_detail_count: 'Total predictable patterns: {count}',
+        policy_patterns_detail_critical: 'Critical patterns: {critical}',
+        policy_patterns_detail_high: 'High-severity patterns: {high}',
+        policy_corpus_summary_tpl: 'Common corpus similarity: {similarity}% ({level})',
+        policy_corpus_detail_similarity: 'Total similarity score: {similarity}%',
+        policy_corpus_detail_dictionary: 'Dictionary matches: {count}',
+        policy_corpus_detail_fragment: 'Longest common fragment length: {length}',
+        policy_level_low: 'low',
+        policy_level_medium: 'medium',
+        policy_level_high: 'high',
+        policy_state_pass: 'yes',
+        policy_state_fail: 'no',
+        rec_user_context_title: 'Password contains user data (login/email/domain/name)',
+        rec_user_context_detail_tpl: 'Matches: {matches}. These are among the first candidates in targeted attacks.',
       }
     };
 
@@ -1535,8 +1684,66 @@
       anim.onfinish = () => { toast.style.display = 'none'; };
     }
 
+    function collectUserContextIdentifiers() {
+      const tokens = new Set();
+      const stopwords = new Set(['www', 'com', 'org', 'net', 'edu', 'gov', 'co', 'ru', 'io', 'dev']);
+
+      const addToken = (value) => {
+        const token = String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (token.length < 3 || /^\d+$/.test(token) || stopwords.has(token)) return;
+        tokens.add(token);
+      };
+
+      const addFromText = (value) => {
+        const text = String(value || '').toLowerCase();
+        if (!text) return;
+        text.split(/[^a-z0-9]+/).forEach(addToken);
+      };
+
+      try {
+        const host = String(window.location.hostname || '').toLowerCase();
+        if (host) {
+          host.split('.').forEach(addToken);
+          addToken(host.replace(/^www\./, '').replace(/\./g, ''));
+        }
+      } catch (_) { }
+
+      const active = document.activeElement;
+      if (active && typeof active.value === 'string') addFromText(active.value);
+
+      const identityHints = /(user(name)?|login|email|mail|account|name|first|last|nick)/i;
+      const inputSelector = 'input[type="email"], input[type="text"], input[type="search"], input[type="tel"], input:not([type])';
+      document.querySelectorAll(inputSelector).forEach((el) => {
+        const attrs = [el.name, el.id, el.placeholder, el.autocomplete].filter(Boolean).join(' ');
+        if (identityHints.test(attrs) || el.type === 'email') {
+          if (typeof el.value === 'string' && el.value.trim()) addFromText(el.value);
+          if (typeof el.placeholder === 'string' && el.placeholder.trim()) addFromText(el.placeholder);
+        }
+      });
+
+      return Array.from(tokens).sort((a, b) => b.length - a.length);
+    }
+
+    function findUserContextMatches(password, contextTokens) {
+      const pwd = String(password || '').toLowerCase();
+      if (!pwd) return [];
+      const normalized = pwd.replace(/[^a-z0-9]/g, '');
+      const matches = new Set();
+
+      for (const rawToken of (contextTokens || [])) {
+        const token = String(rawToken || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (token.length < 3) continue;
+        if (pwd.includes(token) || normalized.includes(token)) {
+          matches.add(token);
+        }
+      }
+
+      return Array.from(matches).sort((a, b) => b.length - a.length);
+    }
+
     function openPanel() {
       panel.style.display = 'flex';
+
       root.classList.add('panel-open');
       toggleBtn.setAttribute('aria-expanded', 'true');
 
@@ -2560,6 +2767,67 @@
       return patterns;
     }
 
+    function getPredictableFindings(findings) {
+      if (!Array.isArray(findings)) return [];
+      return findings.filter((finding) => {
+        const type = String(finding.type || '').toLowerCase();
+        return type.includes('repeat') ||
+          type.includes('keyboard') ||
+          type.includes('alphabet') ||
+          type.includes('number') ||
+          type.includes('sequence') ||
+          type.includes('date') ||
+          type.includes('year') ||
+          type.includes('dictionary') ||
+          type.includes('leet');
+      });
+    }
+
+    function calculateCommonCorpusSimilarity(password, findings, isCommon) {
+      if (!password) return { similarity: 0, dictionaryMatches: 0, longestCommonFragment: 0 };
+      if (isCommon) return { similarity: 100, dictionaryMatches: 1, longestCommonFragment: password.length };
+
+      const lower = password.toLowerCase();
+      const normalized = normalizeLeetspeak(password).normalized || lower;
+
+      let score = 0;
+      let dictionaryMatches = 0;
+      let longestCommonFragment = 0;
+
+      const dictionary = getDictionaryWords();
+      const tokens = normalized.split(/[^a-z0-9]+/).filter((token) => token.length >= 3);
+      for (const token of tokens) {
+        if (dictionary.has(token)) {
+          dictionaryMatches += 1;
+          score += token.length >= 6 ? 18 : 12;
+        }
+      }
+
+      for (const commonRaw of COMMON_PASSWORDS) {
+        const common = String(commonRaw || '').toLowerCase();
+        if (common.length < 5) continue;
+        if (lower.includes(common) || normalized.includes(common)) {
+          longestCommonFragment = Math.max(longestCommonFragment, common.length);
+        }
+      }
+      if (longestCommonFragment > 0) {
+        score += Math.min(30, Math.round(longestCommonFragment * 2.2));
+      }
+
+      const predictable = getPredictableFindings(findings);
+      score += Math.min(36, predictable.length * 6);
+
+      const uniqueRatio = new Set(password).size / Math.max(1, password.length);
+      if (uniqueRatio < 0.45) score += 12;
+      else if (uniqueRatio < 0.6) score += 6;
+
+      return {
+        similarity: clamp(Math.round(score), 0, 100),
+        dictionaryMatches,
+        longestCommonFragment
+      };
+    }
+
     // =====================================================
     // COMPREHENSIVE PASSWORD ANALYSIS
     // =====================================================
@@ -2569,6 +2837,9 @@
       if (!password) {
         return null;
       }
+
+      const userContextIdentifiers = collectUserContextIdentifiers();
+      const userContextMatches = findUserContextMatches(password, userContextIdentifiers);
 
       const len = password.length;
       const dist = getCharacterDistribution(password);
@@ -2597,6 +2868,7 @@
         unique: uniqueChars >= len * 0.5,
         uniqueStrong: uniqueChars >= len * 0.7,
         notCommon: !isCommon,
+        noUserContext: userContextMatches.length === 0,
         noPatterns: findings.filter(f => f.severity === 'high' || f.severity === 'critical').length === 0,
         entropyGood: entropy >= 60,
         entropyStrong: entropy >= 80,
@@ -2634,6 +2906,10 @@
       // Penalties
       if (isCommon) {
         score = Math.min(score, 5); // Severe penalty for common passwords
+      }
+
+      if (!checks.noUserContext) {
+        score -= Math.min(35, 18 + userContextMatches.length * 6);
       }
 
       // Pattern penalties
@@ -2715,6 +2991,54 @@
         }
       };
 
+      const predictableFindings = getPredictableFindings(findings);
+      const corpusSimilarity = calculateCommonCorpusSimilarity(password, findings, isCommon);
+
+      const nistRules = {
+        minLength: len >= 12,
+        notCommon: !isCommon,
+        noUserContext: checks.noUserContext,
+        noCriticalPattern: criticalFindings.length === 0,
+        sufficientEntropy: entropy >= 60,
+        recommendedLength: len >= 16
+      };
+      const nistRequiredPassed = [
+        nistRules.minLength,
+        nistRules.notCommon,
+        nistRules.noUserContext,
+        nistRules.noCriticalPattern,
+        nistRules.sufficientEntropy
+      ].filter(Boolean).length;
+
+      const patternStatus = predictableFindings.length === 0
+        ? 'pass'
+        : (criticalFindings.length > 0 || highFindings.length >= 2 ? 'risk' : 'warn');
+
+      const corpusStatus = corpusSimilarity.similarity >= 70
+        ? 'risk'
+        : (corpusSimilarity.similarity >= 40 ? 'warn' : 'pass');
+
+      const policyScorecard = {
+        nistLike: {
+          status: nistRequiredPassed === 5 ? 'pass' : 'warn',
+          requiredPassed: nistRequiredPassed,
+          requiredTotal: 5,
+          recommendedLength: nistRules.recommendedLength
+        },
+        patterns: {
+          status: patternStatus,
+          predictableCount: predictableFindings.length,
+          critical: criticalFindings.length,
+          high: highFindings.length
+        },
+        corpus: {
+          status: corpusStatus,
+          similarity: corpusSimilarity.similarity,
+          dictionaryMatches: corpusSimilarity.dictionaryMatches,
+          longestCommonFragment: corpusSimilarity.longestCommonFragment
+        }
+      };
+
       return {
         password,
         length: len,
@@ -2728,10 +3052,13 @@
         patterns: findings.map(f => f.type), // Legacy compatibility
         findings,
         checks,
+        userContextIdentifiers,
+        userContextMatches,
         score,
         strengthLevel,
         strengthLabel,
         breakdown,
+        policyScorecard,
         crackTimeScenarios: crackTimeResult.scenarios,
         crackTime: crackTimeResult.primary
       };
@@ -2745,11 +3072,23 @@
 
       // Critical issues
       const lang = settings.lang || 'ru';
+      const dict = TRANSLATIONS[lang] || TRANSLATIONS.en;
+      if (!analysis.checks.noUserContext) {
+        const matchPreview = (analysis.userContextMatches || []).slice(0, 4).join(', ');
+        recs.push({
+          type: 'urgent',
+          text: dict.rec_user_context_title,
+          detail: String(dict.rec_user_context_detail_tpl || '').replace('{matches}', matchPreview || 'n/a')
+        });
+      }
+
       if (!analysis.checks.notCommon) {
         recs.push({
           type: 'urgent',
           text: lang === 'ru' ? 'Пароль найден в базах утекших паролей! Срочно замените.' : 'Password found in breached databases! Change immediately.',
-          detail: lang === 'ru' ? 'Этот пароль уже использовался в утечках данных и является частой мишенью для атак.' : 'This password has been exposed in data breaches and is heavily targeted.'
+          detail: lang === 'ru'
+            ? 'Этот пароль уже использовался в утечках данных и является частой мишенью для атак.'
+            : 'This password has been exposed in data breaches and is heavily targeted.'
         });
       }
 
@@ -2972,10 +3311,30 @@
 
     // Update analysis UI
     function updateAnalysisUI(analysis) {
+      const lang = settings.lang || 'ru';
+      const dict = TRANSLATIONS[lang] || TRANSLATIONS.en;
+
+      function formatTpl(template, values) {
+        return String(template || '').replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ''));
+      }
+
+      function setPolicyDetails(listEl, detailsEl, items) {
+        if (!listEl || !detailsEl) return;
+        listEl.innerHTML = (items || []).map((item) => `<li>${item}</li>`).join('');
+      }
+
+      function setPolicyRow(row, iconEl, textEl, status, text) {
+        if (!row || !iconEl || !textEl) return;
+        row.classList.remove('pass', 'warn', 'risk');
+        row.classList.add(status);
+        iconEl.textContent = status === 'pass' ? '✅' : (status === 'risk' ? '⚠️' : '⚠');
+        textEl.textContent = text;
+      }
+
       if (!analysis) {
         // Reset all displays
         commonWarning.classList.remove('visible');
-        const rlang = settings.lang || 'ru';
+        const rlang = lang;
         qualityText.textContent = '—';
         qualityBar.style.width = '0%';
         qualityBar.style.background = 'rgba(148,163,184,.3)';
@@ -3006,6 +3365,16 @@
           icon.textContent = '✕';
         });
 
+        setPolicyRow(policyNist, policyNistIcon, policyNistText, 'warn', dict.policy_waiting);
+        setPolicyRow(policyPatterns, policyPatternsIcon, policyPatternsText, 'warn', dict.policy_waiting);
+        setPolicyRow(policyCorpus, policyCorpusIcon, policyCorpusText, 'warn', dict.policy_waiting);
+        setPolicyDetails(policyNistPoints, policyNistDetails, [dict.policy_waiting]);
+        setPolicyDetails(policyPatternsPoints, policyPatternsDetails, [dict.policy_waiting]);
+        setPolicyDetails(policyCorpusPoints, policyCorpusDetails, [dict.policy_waiting]);
+        if (policyNistDetails) policyNistDetails.removeAttribute('open');
+        if (policyPatternsDetails) policyPatternsDetails.removeAttribute('open');
+        if (policyCorpusDetails) policyCorpusDetails.removeAttribute('open');
+
         const resetMsg = rlang === 'ru' ? 'Введите или сгенерируйте пароль для анализа' : 'Enter or generate a password to analyze';
         recommendations.innerHTML = `
           <div class="pg-recommendation">
@@ -3024,7 +3393,6 @@
       }
 
       // Quality score
-      const lang = settings.lang || 'ru';
       const score = analysis.score;
       const tEx = lang === 'ru' ? 'Отлично' : 'Excellent';
       const tGd = lang === 'ru' ? 'Хорошо' : 'Good';
@@ -3113,8 +3481,59 @@
       updateCheck(strSymbols, checks.symbols);
       updateCheck(strUnique, checks.unique);
 
+      if (analysis.policyScorecard) {
+        const policy = analysis.policyScorecard;
+
+        const nistText = formatTpl(dict.policy_nist_summary_tpl, {
+          passed: policy.nistLike.requiredPassed,
+          total: policy.nistLike.requiredTotal
+        });
+        setPolicyRow(policyNist, policyNistIcon, policyNistText, policy.nistLike.status, nistText);
+        setPolicyDetails(policyNistPoints, policyNistDetails, [
+          formatTpl(dict.policy_nist_rule_len, { state: analysis.checks.length ? dict.policy_state_pass : dict.policy_state_fail }),
+          formatTpl(dict.policy_nist_rule_common, { state: analysis.checks.notCommon ? dict.policy_state_pass : dict.policy_state_fail }),
+          formatTpl(dict.policy_nist_rule_user, { state: analysis.checks.noUserContext ? dict.policy_state_pass : dict.policy_state_fail }),
+          formatTpl(dict.policy_nist_rule_critical, { state: policy.patterns.critical === 0 ? dict.policy_state_pass : dict.policy_state_fail }),
+          formatTpl(dict.policy_nist_rule_entropy, { state: analysis.checks.entropyGood ? dict.policy_state_pass : dict.policy_state_fail }),
+          formatTpl(dict.policy_nist_rule_recommended, { state: policy.nistLike.recommendedLength ? dict.policy_state_pass : dict.policy_state_fail })
+        ]);
+
+        const patternText = policy.patterns.predictableCount === 0
+          ? dict.policy_patterns_clean
+          : formatTpl(dict.policy_patterns_found_tpl, {
+            count: policy.patterns.predictableCount,
+            critical: policy.patterns.critical,
+            high: policy.patterns.high
+          });
+        setPolicyRow(policyPatterns, policyPatternsIcon, policyPatternsText, policy.patterns.status, patternText);
+        setPolicyDetails(policyPatternsPoints, policyPatternsDetails, [
+          formatTpl(dict.policy_patterns_detail_count, { count: policy.patterns.predictableCount }),
+          formatTpl(dict.policy_patterns_detail_critical, { critical: policy.patterns.critical }),
+          formatTpl(dict.policy_patterns_detail_high, { high: policy.patterns.high })
+        ]);
+
+        let corpusLevel = dict.policy_level_low;
+        if (policy.corpus.similarity >= 70) {
+          corpusLevel = dict.policy_level_high;
+        } else if (policy.corpus.similarity >= 40) {
+          corpusLevel = dict.policy_level_medium;
+        }
+
+        const corpusText = formatTpl(dict.policy_corpus_summary_tpl, {
+          similarity: policy.corpus.similarity,
+          level: corpusLevel
+        });
+        setPolicyRow(policyCorpus, policyCorpusIcon, policyCorpusText, policy.corpus.status, corpusText);
+        setPolicyDetails(policyCorpusPoints, policyCorpusDetails, [
+          formatTpl(dict.policy_corpus_detail_similarity, { similarity: policy.corpus.similarity }),
+          formatTpl(dict.policy_corpus_detail_dictionary, { count: policy.corpus.dictionaryMatches }),
+          formatTpl(dict.policy_corpus_detail_fragment, { length: policy.corpus.longestCommonFragment })
+        ]);
+      }
+
       // Recommendations
       const recs = getRecommendations(analysis);
+
       recommendations.innerHTML = recs.map(r => `
         <div class="pg-recommendation ${r.type}">
           <span class="pg-recomm-icon">${r.type === 'urgent' ? '⚠️' : r.type === 'good' ? '✅' : '💡'}</span>
@@ -3473,43 +3892,61 @@
           if (!firstCharAlphabet) firstCharAlphabet = alphabet;
         }
 
-        let activeAlphabet = alphabet;
-        let activeFirstAlphabet = firstCharAlphabet;
+        const buildCandidatePassword = async () => {
+          let candidate = '';
+          let activeAlphabet = alphabet;
+          let activeFirstAlphabet = firstCharAlphabet;
 
-        if (isQuantumAPI && quantumBytes) {
-          for (let i = 0; i < length; i++) {
-            const useAlphabet = i === 0 ? activeFirstAlphabet : activeAlphabet;
-            const collapsedIndex = await getUnbiasedIndexFromQuantumBytes(useAlphabet.length);
-            const selectedChar = useAlphabet.charAt(collapsedIndex);
-            password += selectedChar;
+          if (isQuantumAPI && quantumBytes) {
+            for (let i = 0; i < length; i++) {
+              const useAlphabet = i === 0 ? activeFirstAlphabet : activeAlphabet;
+              const collapsedIndex = await getUnbiasedIndexFromQuantumBytes(useAlphabet.length);
+              const selectedChar = useAlphabet.charAt(collapsedIndex);
+              candidate += selectedChar;
+
+              if (cbNoRepeats && cbNoRepeats.checked) {
+                activeAlphabet = activeAlphabet.replace(selectedChar, '');
+                activeFirstAlphabet = activeFirstAlphabet.replace(selectedChar, '');
+                if (!activeAlphabet) activeAlphabet = alphabet;
+                if (!activeFirstAlphabet) activeFirstAlphabet = firstCharAlphabet;
+              }
+            }
+          } else {
+            const firstIdx = await quantumField.collapseWaveFunction(activeFirstAlphabet.length);
+            const firstChar = activeFirstAlphabet.charAt(firstIdx);
+            candidate += firstChar;
 
             if (cbNoRepeats && cbNoRepeats.checked) {
-              activeAlphabet = activeAlphabet.replace(selectedChar, '');
-              activeFirstAlphabet = activeFirstAlphabet.replace(selectedChar, '');
-              if (!activeAlphabet) activeAlphabet = alphabet;
-              if (!activeFirstAlphabet) activeFirstAlphabet = firstCharAlphabet;
-            }
-          }
-        } else {
-          const firstIdx = await quantumField.collapseWaveFunction(activeFirstAlphabet.length);
-          const firstChar = activeFirstAlphabet.charAt(firstIdx);
-          password += firstChar;
-
-          if (cbNoRepeats && cbNoRepeats.checked) {
-            activeAlphabet = activeAlphabet.replace(firstChar, '');
-            if (!activeAlphabet) activeAlphabet = alphabet;
-          }
-
-          for (let i = 1; i < length; i++) {
-            const idx = await quantumField.collapseWaveFunction(activeAlphabet.length);
-            const selectedChar = activeAlphabet.charAt(idx);
-            password += selectedChar;
-
-            if (cbNoRepeats && cbNoRepeats.checked) {
-              activeAlphabet = activeAlphabet.replace(selectedChar, '');
+              activeAlphabet = activeAlphabet.replace(firstChar, '');
               if (!activeAlphabet) activeAlphabet = alphabet;
             }
+
+            for (let i = 1; i < length; i++) {
+              const idx = await quantumField.collapseWaveFunction(activeAlphabet.length);
+              const selectedChar = activeAlphabet.charAt(idx);
+              candidate += selectedChar;
+
+              if (cbNoRepeats && cbNoRepeats.checked) {
+                activeAlphabet = activeAlphabet.replace(selectedChar, '');
+                if (!activeAlphabet) activeAlphabet = alphabet;
+              }
+            }
           }
+
+          return candidate;
+        };
+
+        const contextTokens = collectUserContextIdentifiers();
+        let usernameAwareRetries = 0;
+        for (let attempt = 0; attempt < 12; attempt++) {
+          password = await buildCandidatePassword();
+          const matches = findUserContextMatches(password, contextTokens);
+          if (matches.length === 0) break;
+          usernameAwareRetries += 1;
+        }
+
+        if (usernameAwareRetries > 0) {
+          showToast(dict.t_user_aware_retry, 'warn');
         }
 
         if (cbQuantum.checked && isQuantumAPI) {
@@ -3641,6 +4078,12 @@
       if (e.key === 'Enter') {
         analyzeTestPassword();
       }
+    });
+
+    // Prevent host site shortcuts
+    ['keydown', 'keyup', 'keypress'].forEach((eventName) => {
+      testInput.addEventListener(eventName, (e) => e.stopPropagation(), true);
+      output.addEventListener(eventName, (e) => e.stopPropagation(), true);
     });
 
     // Accordion UI Logic
