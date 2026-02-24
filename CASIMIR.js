@@ -2,7 +2,7 @@
 // @name         CASIMIR - Cryptographic Authentication System In Micro Interval Randomness
 // @name:ru      CASIMIR - Криптографическая система аутентификации на основе микроинтервальной случайности
 // @namespace    http://tampermonkey.net/
-// @version      1.0.1.1132
+// @version      1.0.1.1159
 // @description  Premium password generator with quantum entropy, advanced analysis, HIBP breach checks, and a fully opaque dark UI.
 // @description:ru  Профессиональный генератор паролей с квантовой энтропией, расширенным анализом и проверкой утечек HIBP.
 // @author       meshlg
@@ -166,33 +166,33 @@
 
       /* Dark Theme */
       :host(.pg-theme-dark) {
-        --bg0: #0a1221;
-        --bg1: #101a2e;
-        --bg2: #16233a;
-        --bg3: #21314f;
-        --stroke: #243453;
-        --stroke2: #38507b;
+        --bg0: #090909;
+        --bg1: #111111;
+        --bg2: #1a1a1a;
+        --bg3: #262626;
+        --stroke: #2f2f2f;
+        --stroke2: #444444;
 
-        --text: #e8eefc;
-        --muted: #9fb0d1;
-        --text-bright: #f4f8ff;
-        --text-dim: #8da1c7;
+        --text: #ececec;
+        --muted: #b0b0b0;
+        --text-bright: #fafafa;
+        --text-dim: #8f8f8f;
 
-        --brand: #69a2ff;
-        --brand-bg: #16345e;
+        --brand: #73adff;
+        --brand-bg: #1c1c1c;
         --brand2: #34c48f;
-        --brand2-bg: #123a35;
+        --brand2-bg: #1b2420;
         --quantum: #c29bff;
-        --quantum-bg: #2e2151;
+        --quantum-bg: #241f2d;
         --warn: #e5b04c;
-        --warn-bg: #443515;
+        --warn-bg: #322914;
         --danger: #ff7f86;
-        --danger-bg: #472025;
+        --danger-bg: #371f22;
         --success: #49d59d;
-        --success-bg: #163b33;
+        --success-bg: #172b24;
 
-        --shadow: 0 24px 68px rgba(2, 6, 15, .62), 0 0 0 1px var(--stroke);
-        --shadow2: 0 14px 36px rgba(2, 6, 15, .48);
+        --shadow: 0 24px 68px rgba(0, 0, 0, .68), 0 0 0 1px var(--stroke);
+        --shadow2: 0 14px 36px rgba(0, 0, 0, .54);
 
         color-scheme: dark;
       }
@@ -904,7 +904,7 @@
               CASIMIR
               <span id="pg-badge">QUANTUM</span>
             </h3>
-            <p class="pg-subtitle"><span data-i18n="subtitle">Cryptographic Authentication System In Micro Interval Randomness</span> · 1.0.1.1132</p>
+            <p class="pg-subtitle"><span data-i18n="subtitle">Cryptographic Authentication System In Micro Interval Randomness</span> · 1.0.1.1159</p>
           </div>
           <div class="pg-header-controls">
             <button class="pg-close" id="pg-lang-toggle" aria-label="Toggle language">EN</button>
