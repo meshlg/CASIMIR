@@ -2,7 +2,7 @@
 // @name         CASIMIR - Cryptographic Authentication System In Micro Interval Randomness
 // @name:ru      CASIMIR - Криптографическая система аутентификации на основе микроинтервальной случайности
 // @namespace    http://tampermonkey.net/
-// @version      1.0.0.0358
+// @version      1.0.1.1132
 // @description  Premium password generator with quantum entropy, advanced analysis, HIBP breach checks, and a fully opaque dark UI.
 // @description:ru  Профессиональный генератор паролей с квантовой энтропией, расширенным анализом и проверкой утечек HIBP.
 // @author       meshlg
@@ -62,58 +62,97 @@
     // ---- Mount container + shadow
     const container = document.createElement('div');
     container.id = ROOT_ID;
-    container.style.position = 'fixed';
-    container.style.zIndex = '2147483647';
-    container.style.right = '20px';
-    container.style.bottom = '20px';
-    container.style.pointerEvents = 'none'; // allow only internal UI to receive clicks
+
+    // CSP-safe host positioning (prefer constructable stylesheet, fallback to inline styles)
+    let hostStyled = false;
+    const hostCss = `
+      #${ROOT_ID}{
+        position:fixed;
+        z-index:2147483647;
+        right:20px;
+        bottom:20px;
+        pointer-events:none;
+      }
+    `;
+    try {
+      if (typeof CSSStyleSheet === 'function' && 'adoptedStyleSheets' in document) {
+
+        const hostSheet = new CSSStyleSheet();
+        hostSheet.replaceSync(hostCss);
+        document.adoptedStyleSheets = [...document.adoptedStyleSheets, hostSheet];
+        hostStyled = true;
+      }
+    } catch (_) { }
+
+    if (!hostStyled) {
+      container.style.position = 'fixed';
+      container.style.zIndex = '2147483647';
+      container.style.right = '20px';
+      container.style.bottom = '20px';
+      container.style.pointerEvents = 'none'; // allow only internal UI to receive clicks
+    }
+
     document.body.appendChild(container);
 
-    const shadow = container.attachShadow({ mode: 'open' });
+    let shadow = null;
+    try {
+      shadow = container.attachShadow({ mode: 'closed' });
+    } catch (e) {
+      console.warn('[CASIMIR] Shadow DOM attach failed, aborting mount:', e);
+      container.remove();
+      return;
+    }
+
+    // Some pages monkeypatch attachShadow and return a non-ShadowRoot object.
+    // In that case, fail closed instead of rendering broken unstyled UI in page DOM.
+    if (!shadow || typeof ShadowRoot !== 'function' || !(shadow instanceof ShadowRoot) || shadow.host !== container) {
+      console.warn('[CASIMIR] Shadow DOM appears unavailable or hijacked, aborting mount.');
+      container.remove();
+      return;
+    }
 
     // ---- Styles (dark theme, clean, readable, informative)
-    const style = document.createElement('style');
-    style.textContent = `
+    const shadowCss = `
       :host {
-        --font: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --font: "Aptos", "Segoe UI Variable", "SF Pro Display", "IBM Plex Sans", "Trebuchet MS", ui-sans-serif, system-ui, sans-serif;
         --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-        --bg0: #ffffff;
-        --bg1: #f6f8fa;
-        --bg2: #f3f4f6;
-        --bg3: #ebedf0;
-        --stroke: #d0d7de;
-        --stroke2: #afb8c1;
+        --bg0: #f8fafc;
+        --bg1: #ffffff;
+        --bg2: #eef2f7;
+        --bg3: #e1e7f0;
+        --stroke: #d7dee9;
+        --stroke2: #b8c3d4;
 
-        --text: #24292f;
-        --muted: #57606a;
-        --text-bright: #0f1419;
-        --text-dim: #57606a;
+        --text: #1f2937;
+        --muted: #5f6d83;
+        --text-bright: #111827;
+        --text-dim: #6b7a91;
 
-        --brand: #0969da;
-        --brand-bg: #ddf4ff;
-        --brand2: #1a7f37;
-        --brand2-bg: #dafbe1;
-        --quantum: #8250df;
-        --quantum-bg: #fbeaff;
-        --warn: #9a6700;
-        --warn-bg: #fff8c5;
-        --danger: #cf222e;
-        --danger-bg: #ffebe9;
-        --success: #1a7f37;
-        --success-bg: #dafbe1;
+        --brand: #2563eb;
+        --brand-bg: #e6efff;
+        --brand2: #0f9d7a;
+        --brand2-bg: #defbf2;
+        --quantum: #8b5cf6;
+        --quantum-bg: #f1eaff;
+        --warn: #b7791f;
+        --warn-bg: #fff5d9;
+        --danger: #d14343;
+        --danger-bg: #ffe9e9;
+        --success: #1f9d66;
+        --success-bg: #def8ec;
 
-        --shadow: 0 16px 48px rgba(0,0,0,.15), 0 0 0 1px var(--stroke);
-        --shadow2: 0 8px 24px rgba(0,0,0,.10);
+        --shadow: 0 24px 64px rgba(28, 39, 61, .20), 0 0 0 1px var(--stroke);
+        --shadow2: 0 12px 32px rgba(28, 39, 61, .14);
 
         --r8: 8px;
         --r10: 10px;
         --r12: 12px;
-        --r16: 16px;
-        --r20: 20px;
+        --r16: 18px;
+        --r20: 24px;
 
-        --ring: 0 0 0 2px var(--bg0), 0 0 0 4px var(--brand);
-        --ringQ: 0 0 0 2px var(--bg0), 0 0 0 4px var(--quantum);
+        --ring: 0 0 0 2px var(--bg1), 0 0 0 4px color-mix(in srgb, var(--brand) 80%, white 20%);
+        --ringQ: 0 0 0 2px var(--bg1), 0 0 0 4px color-mix(in srgb, var(--quantum) 80%, white 20%);
 
         font-family: var(--font);
         font-size: 14px;
@@ -127,33 +166,33 @@
 
       /* Dark Theme */
       :host(.pg-theme-dark) {
-        --bg0: #0d1117;
-        --bg1: #161b22;
-        --bg2: #21262d;
-        --bg3: #282e36;
-        --stroke: #30363d;
-        --stroke2: #484f58;
+        --bg0: #0a1221;
+        --bg1: #101a2e;
+        --bg2: #16233a;
+        --bg3: #21314f;
+        --stroke: #243453;
+        --stroke2: #38507b;
 
-        --text: #e6edf3;
-        --muted: #8b949e;
-        --text-bright: #ffffff;
-        --text-dim: #6e7681;
+        --text: #e8eefc;
+        --muted: #9fb0d1;
+        --text-bright: #f4f8ff;
+        --text-dim: #8da1c7;
 
-        --brand: #58a6ff;
-        --brand-bg: #1a3a5c;
-        --brand2: #3fb950;
-        --brand2-bg: #1a3a2a;
-        --quantum: #bc8cff;
-        --quantum-bg: #2d1f54;
-        --warn: #d29922;
-        --warn-bg: #3d2e00;
-        --danger: #f85149;
-        --danger-bg: #3d1418;
-        --success: #3fb950;
-        --success-bg: #1a3a2a;
+        --brand: #69a2ff;
+        --brand-bg: #16345e;
+        --brand2: #34c48f;
+        --brand2-bg: #123a35;
+        --quantum: #c29bff;
+        --quantum-bg: #2e2151;
+        --warn: #e5b04c;
+        --warn-bg: #443515;
+        --danger: #ff7f86;
+        --danger-bg: #472025;
+        --success: #49d59d;
+        --success-bg: #163b33;
 
-        --shadow: 0 16px 48px rgba(0,0,0,.55), 0 0 0 1px var(--stroke);
-        --shadow2: 0 8px 24px rgba(0,0,0,.40);
+        --shadow: 0 24px 68px rgba(2, 6, 15, .62), 0 0 0 1px var(--stroke);
+        --shadow2: 0 14px 36px rgba(2, 6, 15, .48);
 
         color-scheme: dark;
       }
@@ -218,15 +257,43 @@
         position: relative;
         pointer-events: auto;
       }
+      .pg-root::before,
+      .pg-root::after{
+        content:"";
+        position:absolute;
+        pointer-events:none;
+        z-index:0;
+        filter:blur(28px);
+        opacity:0;
+        transition:opacity .18s ease;
+      }
+      .pg-root.panel-open::before,
+      .pg-root.panel-open::after{ opacity:.28; }
+
+      .pg-root::before{
+        width:140px;
+        height:140px;
+        top:-26px;
+        right:12px;
+        background:radial-gradient(circle, var(--brand), transparent 72%);
+      }
+      .pg-root::after{
+        width:130px;
+        height:130px;
+        bottom:56px;
+        left:-18px;
+        background:radial-gradient(circle, var(--quantum), transparent 74%);
+      }
 
       /* Floating toggle */
       #pg-toggle-btn{
         width: 52px;
         height: 52px;
-        border-radius: 16px;
+        border-radius: 18px;
         border: 1px solid var(--stroke);
-        background: var(--bg1);
+        background: linear-gradient(150deg, color-mix(in srgb, var(--bg1) 92%, white 8%), var(--bg2));
         box-shadow: var(--shadow2);
+
         cursor: pointer;
         display: grid;
         place-items: center;
@@ -236,7 +303,8 @@
         transform: translateZ(0);
         transition: transform .2s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
       }
-      #pg-toggle-btn:hover{ transform:translateY(-2px); background:var(--bg2); border-color:var(--stroke2); box-shadow:var(--shadow2),0 0 20px rgba(88,166,255,.15); }
+      #pg-toggle-btn:hover{ transform:translateY(-2px); background:linear-gradient(150deg, var(--bg1), var(--bg3)); border-color:var(--stroke2); box-shadow:var(--shadow2),0 0 24px color-mix(in srgb, var(--brand) 28%, transparent); }
+
       #pg-toggle-btn:active{ transform:translateY(0) scale(.96); }
       #pg-toggle-btn:focus-visible{ box-shadow:var(--ring); }
       #pg-toggle-btn.quantum-active{
@@ -245,7 +313,6 @@
         box-shadow: var(--shadow2), 0 0 16px rgba(188,140,255,.2);
       }
       #pg-toggle-btn.quantum-active:hover{ box-shadow:var(--shadow2),0 0 28px rgba(188,140,255,.30); }
-      #pg-toggle-btn.quantum-active:focus-visible{ box-shadow:var(--ringQ); }
 
       #pg-icon{
         width: 22px;
@@ -262,32 +329,47 @@
         bottom: 64px;
         width: clamp(380px, 75vw, 860px);
         max-height: min(85vh, 850px);
+
         display: none;
         flex-direction: column;
         padding: 0;
-        border-radius: var(--r16);
+        border-radius: var(--r20);
         border: 1px solid var(--stroke);
-        background: var(--bg0);
+        background:
+          linear-gradient(160deg, color-mix(in srgb, var(--bg0) 92%, var(--brand-bg) 8%), var(--bg1));
         box-shadow: var(--shadow);
         overflow: hidden;
         transform: translateZ(0);
+        backdrop-filter: blur(12px);
+      }
+      #pg-panel::before{
+        content:"";
+        position:absolute;
+        inset:0;
+        pointer-events:none;
+        background:
+          radial-gradient(160px 100px at 88% 3%, color-mix(in srgb, var(--brand) 14%, transparent), transparent 74%),
+          radial-gradient(180px 120px at 8% 96%, color-mix(in srgb, var(--quantum) 14%, transparent), transparent 76%);
+        z-index:0;
       }
 
       .pg-scroll{
         overflow-y: auto;
         overflow-x: hidden;
-        padding: 12px;
+        padding: 14px;
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 10px;
+        position: relative;
+        z-index: 1;
       }
+
       .pg-scroll::-webkit-scrollbar{ width:6px; }
       .pg-scroll::-webkit-scrollbar-track{ background:transparent; }
       .pg-scroll::-webkit-scrollbar-thumb{
         background: var(--bg3);
         border-radius: 999px;
       }
-      .pg-scroll::-webkit-scrollbar-thumb:hover{ background:var(--stroke2); }
 
       .pg-layout {
         display: grid;
@@ -304,23 +386,32 @@
       /* Header */
       .pg-header{
         display:flex; align-items:center; justify-content:space-between; gap:12px;
-        padding:12px; border-bottom:1px solid var(--stroke); background:var(--bg1);
+        padding:13px 14px;
+        border-bottom:1px solid color-mix(in srgb, var(--stroke) 80%, transparent);
+        background:
+          linear-gradient(90deg, color-mix(in srgb, var(--brand-bg) 46%, transparent), color-mix(in srgb, var(--quantum-bg) 32%, transparent)),
+          var(--bg1);
+        position: relative;
+        z-index: 2;
       }
+
       .pg-header-controls {
         display: flex;
         gap: 8px;
         align-items: center;
       }
-      .pg-title{ margin:0; display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; letter-spacing:.3px; color:var(--text-bright); }
-      .pg-subtitle{ margin:0; font-size:11px; color:var(--text-dim); letter-spacing:.2px; }
+      .pg-title{ margin:0; display:flex; align-items:center; gap:10px; font-size:16px; font-weight:800; letter-spacing:.25px; color:var(--text-bright); }
+      .pg-subtitle{ margin:0; font-size:11px; color:var(--text-dim); letter-spacing:.25px; }
+
       .pg-titleBlock{ display:flex; flex-direction:column; gap:2px; min-width:0; }
       .pg-close{
         width:32px; height:32px; border-radius:var(--r8); border:1px solid var(--stroke);
-        background:var(--bg2); color:var(--muted); cursor:pointer; display:grid; place-items:center;
+        background:linear-gradient(145deg, var(--bg2), color-mix(in srgb, var(--bg3) 76%, transparent)); color:var(--muted); cursor:pointer; display:grid; place-items:center;
         font-size:14px; outline:none;
         transition:background .15s,border-color .15s,color .15s,transform .15s;
       }
-      .pg-close:hover{ background:var(--bg3); border-color:var(--stroke2); color:var(--text); }
+      .pg-close:hover{ background:linear-gradient(145deg, var(--bg3), var(--bg2)); border-color:var(--stroke2); color:var(--text); }
+
       .pg-close:active{ transform:scale(.94); }
       .pg-close:focus-visible{ box-shadow:var(--ring); }
 
@@ -343,51 +434,63 @@
       #pg-toast .x:hover{ color:var(--text); background:var(--bg2); }
 
       /* Output row */
-      .pg-output{ display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:stretch; }
+      .pg-output{ display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:stretch; }
       #pg-password-output{
         width:100%; box-sizing:border-box; padding:10px 12px;
-        border-radius:var(--r10); border:1px solid var(--stroke); background:var(--bg1);
+        border-radius:12px; border:1px solid var(--stroke); background:color-mix(in srgb, var(--bg1) 88%, var(--brand-bg) 12%);
         color:var(--text-bright); outline:none; font-family:var(--mono); font-size:14px;
         letter-spacing:.5px; line-height:1.4; min-height:40px;
         transition:border-color .18s,box-shadow .18s;
       }
+
       #pg-password-output:focus-visible{ border-color:var(--brand); box-shadow:var(--ring); }
       #pg-password-output.quantum-mode:focus-visible{ border-color:var(--quantum); box-shadow:var(--ringQ); }
 
       /* Buttons */
       .pg-btn{
-        border:1px solid var(--stroke); border-radius:var(--r10); background:var(--bg2);
+        border:1px solid var(--stroke); border-radius:12px; background:linear-gradient(150deg, var(--bg2), color-mix(in srgb, var(--bg1) 85%, transparent));
         color:var(--text); cursor:pointer; padding:8px 12px; min-height:36px;
+
         display:inline-flex; align-items:center; justify-content:center; gap:6px;
         outline:none; font-size:12px; font-weight:500; letter-spacing:.1px;
         transition:transform .15s,background .15s,border-color .15s,box-shadow .15s;
         position:relative; overflow:hidden; user-select:none;
       }
-      .pg-btn:hover{ background:var(--bg3); border-color:var(--stroke2); transform:translateY(-1px); }
+      .pg-btn:hover{ background:linear-gradient(150deg, var(--bg3), var(--bg2)); border-color:var(--stroke2); transform:translateY(-1px); }
+
       .pg-btn:active{ transform:translateY(0) scale(.98); }
       .pg-btn:focus-visible{ box-shadow:var(--ring); }
       .pg-btn[disabled]{ opacity:.4; cursor:not-allowed; transform:none; }
 
       .pg-btn.primary{
-        border-color:rgba(88,166,255,.3); background:var(--brand); color:#fff;
-        box-shadow:0 4px 12px rgba(88,166,255,.2);
+        border-color:color-mix(in srgb, var(--brand) 46%, white 12%);
+        background:linear-gradient(145deg, color-mix(in srgb, var(--brand) 88%, white 12%), color-mix(in srgb, var(--brand) 78%, black 22%));
+        color:#fff;
+        box-shadow:0 10px 22px color-mix(in srgb, var(--brand) 34%, transparent);
       }
-      .pg-btn.primary:hover{ background:#79bbff; box-shadow:0 6px 16px rgba(88,166,255,.3); }
+      .pg-btn.primary:hover{ box-shadow:0 14px 28px color-mix(in srgb, var(--brand) 42%, transparent); }
+
       .pg-btn.primary:focus-visible{ box-shadow:0 4px 12px rgba(88,166,255,.2),var(--ring); }
       .pg-btn.primary.quantum{
-        border-color:rgba(188,140,255,.3); background:var(--quantum);
-        box-shadow:0 4px 12px rgba(188,140,255,.2);
+        border-color:color-mix(in srgb, var(--quantum) 52%, white 8%);
+        background:linear-gradient(145deg, color-mix(in srgb, var(--quantum) 88%, white 12%), color-mix(in srgb, var(--quantum) 78%, black 22%));
+        box-shadow:0 10px 22px color-mix(in srgb, var(--quantum) 34%, transparent);
       }
-      .pg-btn.primary.quantum:hover{ background:#cfb3ff; }
+      .pg-btn.primary.quantum:hover{ box-shadow:0 14px 28px color-mix(in srgb, var(--quantum) 42%, transparent); }
+
       .pg-btn.primary.quantum:focus-visible{ box-shadow:0 4px 12px rgba(188,140,255,.2),var(--ringQ); }
 
       .pg-actions{ display:flex; gap:8px; }
 
       /* Sections */
       .pg-section{
-        border:1px solid var(--stroke); border-radius:var(--r12); background:var(--bg1);
+        border:1px solid color-mix(in srgb, var(--stroke) 78%, transparent);
+        border-radius:14px;
+        background:linear-gradient(150deg, color-mix(in srgb, var(--bg1) 86%, var(--brand-bg) 14%), var(--bg1));
         padding:12px; display:flex; flex-direction:column; gap:8px;
+        box-shadow: inset 0 1px 0 color-mix(in srgb, white 35%, transparent);
       }
+
       .pg-section-head{
         display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;
         padding:0; border:none; background:none; color:var(--text); font-size:12px;
@@ -395,10 +498,7 @@
         transition:color .15s;
       }
       .pg-section-head:hover{ color:var(--text-bright); }
-      .pg-section-head .chevron{
-        font-size:10px; color:var(--text-dim); transition:transform .2s ease;
-      }
-      .pg-section-head .chevron.open{ transform:rotate(90deg); }
+
       .pg-section-body{
         overflow:hidden; transition:max-height .3s ease,opacity .25s ease;
       }
@@ -459,12 +559,13 @@
       }
       .pg-check{
         display:flex; align-items:center; justify-content:space-between; gap:8px;
-        border:1px solid var(--stroke); border-radius:var(--r10);
-        background:var(--bg2); padding:10px 12px;
+        border:1px solid color-mix(in srgb, var(--stroke) 78%, transparent); border-radius:11px;
+        background:linear-gradient(145deg, var(--bg2), color-mix(in srgb, var(--bg1) 84%, transparent)); padding:10px 12px;
         transition:transform .14s,background .15s,border-color .15s,box-shadow .15s;
         cursor:pointer;
       }
-      .pg-check:hover{ background:var(--bg3); border-color:var(--stroke2); transform:translateY(-1px); }
+      .pg-check:hover{ background:linear-gradient(145deg, var(--bg3), var(--bg2)); border-color:var(--stroke2); transform:translateY(-1px); box-shadow:0 8px 18px color-mix(in srgb, var(--brand) 12%, transparent); }
+
       .pg-check:has(input:focus-visible){ box-shadow:var(--ring); }
       .pg-check span{ font-size:12px; color:var(--text); letter-spacing:.15px; font-weight:500; }
       .pg-check input[type="checkbox"]{ width:16px; height:16px; cursor:pointer; accent-color:var(--brand); }
@@ -494,15 +595,19 @@
 
       /* ===== Analysis Section ===== */
       .pg-analysis{
-        border:1px solid var(--stroke); border-radius:var(--r12); background:var(--bg1);
+        border:1px solid color-mix(in srgb, var(--stroke) 78%, transparent);
+        border-radius:16px;
+        background:linear-gradient(160deg, color-mix(in srgb, var(--bg1) 84%, var(--quantum-bg) 16%), var(--bg1));
         display:flex; flex-direction:column; overflow:hidden;
+        box-shadow: inset 0 1px 0 color-mix(in srgb, white 28%, transparent);
       }
       .pg-analysis-header{
         display:flex; align-items:center; justify-content:space-between; gap:10px;
-        padding:10px 12px; cursor:pointer; user-select:none;
+        padding:11px 12px; cursor:pointer; user-select:none;
         transition:background .15s;
       }
-      .pg-analysis-header:hover{ background:var(--bg2); }
+      .pg-analysis-header:hover{ background:color-mix(in srgb, var(--bg2) 88%, transparent); }
+
       .pg-analysis-title{
         font-size:11px; font-weight:600; letter-spacing:.3px; color:var(--text);
         display:flex; align-items:center; gap:8px; text-transform:uppercase;
@@ -513,6 +618,7 @@
         transition:background .15s,color .15s; font-weight:500;
       }
       .pg-analysis-toggle:hover{ background:var(--brand-bg); }
+
       .pg-analysis-content{
         display:none; flex-direction:column; gap:10px; padding:0 12px 12px;
       }
@@ -555,11 +661,11 @@
       .pg-crack-time.seconds{ color:#f97316; background:#3d2000; }
       .pg-crack-time.minutes{ color:var(--warn); background:var(--warn-bg); }
       .pg-crack-time.hours{ color:#e3b341; background:#3d3200; }
-      .pg-crack-time.days{ color:#7ee787; background:#1a3a2a; }
-      .pg-crack-time.months{ color:var(--success); background:var(--success-bg); }
-      .pg-crack-time.years{ color:#56d364; background:#1a3a2a; }
+      .pg-crack-time.days{ color:var(--success); background:var(--success-bg); }
+      .pg-crack-time.months{ color:var(--brand); background:var(--brand-bg); }
+      .pg-crack-time.years{ color:#56d364; background:var(--brand-bg); }
       .pg-crack-time.centuries{ color:var(--brand); background:var(--brand-bg); }
-      
+
       .pg-crack-time.danger-pulse{ animation:pg-pulse-danger 1.5s infinite; border:1px solid rgba(248,81,73,.5); }
       .pg-crack-time.quantum-glow{ animation:pg-glow-quantum 2s infinite alternate; border:1px solid var(--quantum); background:var(--quantum-bg); }
       .pg-crack-desc{ font-size:10px; color:var(--text-dim); text-align:center; }
@@ -636,6 +742,7 @@
       .pg-breach-btn:hover{ background:var(--bg3); transform:translateY(-1px); }
       .pg-breach-btn:disabled{ opacity:.4; cursor:not-allowed; transform:none; }
       .pg-breach-btn.loading{ color:var(--brand); }
+
       .pg-breach-info{
         display:flex; align-items:flex-start; gap:6px; padding:6px 8px;
         background:var(--success-bg); border:1px solid rgba(63,185,80,.2);
@@ -713,7 +820,7 @@
       /* Test input */
       .pg-test-section{
         display:flex; flex-direction:column; gap:8px;
-        padding:12px; background:var(--bg2); border-radius:var(--r10);
+        padding:12px; background:color-mix(in srgb, var(--bg2) 88%, var(--brand-bg) 12%); border-radius:12px;
       }
       .pg-test-label{ font-size:11px; color:var(--muted); letter-spacing:.15px; }
       .pg-test-input{
@@ -736,9 +843,11 @@
 
       /* Footer */
       .pg-footer{
-        padding:10px 16px; border-top:1px solid var(--stroke); background:var(--bg1);
+        padding:10px 16px; border-top:1px solid color-mix(in srgb, var(--stroke) 78%, transparent); background:color-mix(in srgb, var(--bg1) 92%, var(--brand-bg) 8%);
         display:flex; align-items:center; justify-content:space-between;
         font-size:10px; color:var(--text-dim); letter-spacing:.15px;
+        position: relative;
+        z-index: 1;
       }
       .pg-footer a{ color:var(--brand); text-decoration:none; }
       .pg-footer a:hover{ text-decoration:underline; }
@@ -748,7 +857,30 @@
         *{ transition:none!important; animation:none!important; }
       }
     `;
-    shadow.appendChild(style);
+
+    let shadowStyled = false;
+    try {
+      if (typeof CSSStyleSheet === 'function' && 'adoptedStyleSheets' in shadow) {
+
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(shadowCss);
+        shadow.adoptedStyleSheets = [...shadow.adoptedStyleSheets, sheet];
+        shadowStyled = true;
+      }
+    } catch (_) { }
+
+    if (!shadowStyled) {
+      const style = document.createElement('style');
+      style.textContent = shadowCss;
+      shadow.appendChild(style);
+
+      // If CSP blocks inline <style>, avoid rendering broken unstyled UI.
+      if (!style.sheet) {
+        console.warn('[CASIMIR] Shadow style blocked by CSP, aborting mount.');
+        container.remove();
+        return;
+      }
+    }
 
     // ---- HTML
     const root = document.createElement('div');
@@ -772,7 +904,7 @@
               CASIMIR
               <span id="pg-badge">QUANTUM</span>
             </h3>
-            <p class="pg-subtitle"><span data-i18n="subtitle">Cryptographic Authentication System In Micro Interval Randomness</span> · 1.0.0.0358</p>
+            <p class="pg-subtitle"><span data-i18n="subtitle">Cryptographic Authentication System In Micro Interval Randomness</span> · 1.0.1.1132</p>
           </div>
           <div class="pg-header-controls">
             <button class="pg-close" id="pg-lang-toggle" aria-label="Toggle language">EN</button>
@@ -920,7 +1052,7 @@
 
               <!-- Quality meter -->
               <div>
-                <div class="pg-row" style="margin-bottom: 4px;">
+                <div class="pg-row">
                   <div class="pg-label" data-i18n="overall_rate">Общая оценка</div>
                   <div class="pg-value" id="pg-quality-text" data-i18n="awaiting">—</div>
                 </div>
@@ -980,22 +1112,22 @@
                 <div class="pg-dist-title" data-i18n="dist_title">Распределение символов</div>
                 <div class="pg-dist-bar">
                   <span class="pg-dist-label">A-Z</span>
-                  <div class="pg-dist-track"><div class="pg-dist-fill uppercase" id="pg-dist-upper" style="width: 0%"></div></div>
+                  <div class="pg-dist-track"><div class="pg-dist-fill uppercase" id="pg-dist-upper"></div></div>
                   <span class="pg-dist-count" id="pg-count-upper">0</span>
                 </div>
                 <div class="pg-dist-bar">
                   <span class="pg-dist-label">a-z</span>
-                  <div class="pg-dist-track"><div class="pg-dist-fill lowercase" id="pg-dist-lower" style="width: 0%"></div></div>
+                  <div class="pg-dist-track"><div class="pg-dist-fill lowercase" id="pg-dist-lower"></div></div>
                   <span class="pg-dist-count" id="pg-count-lower">0</span>
                 </div>
                 <div class="pg-dist-bar">
                   <span class="pg-dist-label">0-9</span>
-                  <div class="pg-dist-track"><div class="pg-dist-fill numbers" id="pg-dist-numbers" style="width: 0%"></div></div>
+                  <div class="pg-dist-track"><div class="pg-dist-fill numbers" id="pg-dist-numbers"></div></div>
                   <span class="pg-dist-count" id="pg-count-numbers">0</span>
                 </div>
                 <div class="pg-dist-bar">
                   <span class="pg-dist-label">!@#$</span>
-                  <div class="pg-dist-track"><div class="pg-dist-fill symbols" id="pg-dist-symbols" style="width: 0%"></div></div>
+                  <div class="pg-dist-track"><div class="pg-dist-fill symbols" id="pg-dist-symbols"></div></div>
                   <span class="pg-dist-count" id="pg-count-symbols">0</span>
                 </div>
               </div>
@@ -1165,6 +1297,7 @@
     };
 
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const SYMBOL_CHARSET = '!@#$%^&*()_+-=[]{},.?';
 
     // ---- I18n Dictionary
     const TRANSLATIONS = {
@@ -1222,7 +1355,7 @@
         t_err: 'Ошибка генерации. Подробности в консоли.',
 
         // UI labels
-        show_btn: 'Показать', clear_btn: 'Очистить',
+        show_btn: 'Показать', hide_btn: 'Скрыть', clear_btn: 'Очистить',
         overall_rate: 'Общая оценка',
         hint_msg: 'Для лучшей безопасности используйте 16–24 символа и все классы символов.',
         upper_tip: 'Заглавные буквы (A–Z) — +26 символов',
@@ -1300,7 +1433,7 @@
         t_err: 'Generation error. See console details.',
 
         // UI labels
-        show_btn: 'Show', clear_btn: 'Clear',
+        show_btn: 'Show', hide_btn: 'Hide', clear_btn: 'Clear',
         overall_rate: 'Overall Rating',
         hint_msg: 'For best security, use 16–24 characters with all character classes.',
         upper_tip: 'Uppercase (A–Z) — +26 chars',
@@ -1404,6 +1537,7 @@
 
     function openPanel() {
       panel.style.display = 'flex';
+      root.classList.add('panel-open');
       toggleBtn.setAttribute('aria-expanded', 'true');
 
       if (!prefersReducedMotion()) {
@@ -1419,6 +1553,7 @@
 
     function closePanel() {
       toggleBtn.setAttribute('aria-expanded', 'false');
+      root.classList.remove('panel-open');
 
       if (prefersReducedMotion()) {
         panel.style.display = 'none';
@@ -1508,7 +1643,7 @@
       if (cbUpper.checked) size += 26;
       if (cbLower.checked) size += 26;
       if (cbNumbers.checked) size += 10;
-      if (cbSymbols.checked) size += 28; // approx for our symbol set below
+      if (cbSymbols.checked) size += SYMBOL_CHARSET.length;
       return size;
     }
 
@@ -1661,7 +1796,7 @@
     // DICTIONARY WORDS (Common English words for detection)
     // =====================================================
     // Base64-encoded dictionary for compact storage
-    const DICTIONARY_WORDS_BASE64 = 'cGFzc3dvcmQsYWRtaW4sbG9naW4sdXNlcixyb290LGd1ZXN0LHRlc3QsZGVtbyx3ZWxjb21lLGhlbGxvLGxvdmUsaGF0ZSxsaWZlLGRlYXRoLGdvZCxkZXZpbCxhbmdlbCxkZW1vbixoZWF2ZW4saGVsbCxnb29kLGV2aWwsYmxjay53aGl0ZSxkYXJrLGxpZ2h0LG5pZ2h0LGRheSxzdW4sbW9vbixzdGFyLHNreSxlYXJ0aCxmaXJlLHdhdGVyLHdpbmQsaWNlLHN0b3JtLHJhaW4sc25vdyxzdW1tZXIsd2ludGVyLHNwcmluZyxhdHVtbixmYWxsLGNvbGQsaG90LHdhcm0sa2luZyxxdWVlbnAscHJpbmNlLHByaW5jZXNzLGxvcmQsbWFzdGVyLGJvc3MsY2hpZWYsaGVybyx2aWxsYWluLHdhcnJpZXIsZmlnaHRlcixzb2xkaWVyLGtuaWdodCxuamluamEsZHJhZ29uLHBob2VuaXgsdGlnZXIsbGlvbix3b2xmLGJlYXIsZWFnbGUsaGF3ayxzaGFkb3csZ2hvc3Qsc291bCxoZWFydCxtaW5kLGJvZHksYmxvb2QscG93ZXI,bWFnaWMsZm9yY2UsZW5lcmd5LHNwaXJpdCxteXN0aWMsc2VjcmV0LG1vbmV5LGNhc2gsZ29sZCxzaWx2ZXIsZGlhbW9uZCxyaWNoLHdlYXJ0aCxiYW5rLGNvbXB1dGVyLGludGVybmV0LG5ldHdvcmssc3lzdGVtLHNlcnZlcixkYXRhYmFzZSxzZWN1cml0eSxzZWN1cmUsYWNjZXNzLHByaXZhdGUscHVibGljLG9wZW4sY2xvc2Usc3RhcnQsc3RvcCxiZWdpbixlbmQsZmlyc3QsbGFzdCxuZXcgb2xkLHlvdW5nLGJhYnk7Y2hpbGQsbWFuLHdvbWFuLGJveSxiaXIsZnJpZW5kLGZhbWlseSxtb3RoZXIsZmF0aGVyLGJyb3RoZXIsc2lzdGVyLHNvbixkYXVnaHRlcixob21lLGhvdXNlLHJvb20sZG9vcix3aW5kb3csd2FsbCxmbG9vcixyb29mLGNhcix0cnVjayxiaWtlLHBsYW5lLHRyYWluLGJvYXQtc2hpcCxyb2NrZXQsZ2FtZSxwbGF5LHdpbixsb3NlLHNjb3JlLGxldmVsLHBvaW50LGJvbnVzLG11c2ljLHNvbmcsZGFuY2Uscm9jayxqYXp6LHBvcCxtZXRhbCxwdW5rLG1vdmllLGZpbG0sc2hvdyxzdGFyLGFjdG9yLHN1cGVyLG1lZ2EsdWx0cmFbaHBlcixleHRyYSxnaWdhLHRlcmEscGV0YSxjb29sLGhvdCxzZXh5LGN1dGUsbmljZSxncmVhdCwgYXdlc29tZSwgYW1hemluZyxoYXBweSxzYWQsYW5ncnksbWFkLGNyYXp5LHdpbGQsZnJlZSxlYXN5LGhhcmQsc29mdCxhc3Qsc2xvdyxiaWcsc21hbGwsc29uZyxzaG9ydCxoaWcsbG93LHVwLGRvd24sbGVmdCxyaWdodCxmcm9udCxiYWNrLG5vcnRoLHNvdXRoLGVhc3Qsd2VzdCxjZW50ZXIrbWlkZGxlLHRvcCxib3R0b20sb25lLHR3byx0aHJlZSxmb3VyLGZpdmUsc2l4LHNldmVuLGVpZ2h0LG5pbmUtdGVuLHplcm8sbnVsbCx2b2lkLGVtcHR5LGZ1bGwsaGFsZixkb3VibGUtdHJpcGxl';
+    const DICTIONARY_WORDS_BASE64 = 'cGFzc3dvcmQsYWRtaW4sbG9naW4sdXNlcixyb290LGd1ZXN0LHRlc3QsZGVtbyx3ZWxjb21lLGhlbGxvLGxvdmUsaGF0ZSxkYXVnaHRlcixob21lLGhvdXNlLHJvb20sZG9vcix3aW5kb3csd2FsbCxmbG9vcixyb29mLGNhcix0cnVjayxiaWtlLHBsYW5lLHRyYWluLGJvYXQtc2hpcCxyb2NrZXQsZ2FtZSxwbGF5LHdpbixsb3NlLHNjb3JlLGxldmVsLHBvaW50LGJvbnVzLG11c2ljLHNvbmcsZGFuY2Uscm9jayxqYXp6LHBvcCxtZXRhbCxwdW5rLG1vdmllLGZpbG0sc2hvdyxzdGFyLGFjdG9yLHN1cGVyLG1lZ2EsdWx0cmFbaHBlcixleHRyYSxnaWdhLHRlcmEscGV0YSxjb29sLGhvdCxzZXh5LGN1dGUsbmljZSxncmVhdCwgYXdlc29tZSwgYW1hemluZyxoYXBweSxzYWQsYW5ncnksbWFkLGNyYXp5LHdpbGQsZnJlZSxlYXN5LGhhcmQsc29mdCxhc3Qsc2xvdyxiaWcsc21hbGwsc29uZyxzaG9ydCxoaWcsbG93LHVwLGRvd24sbGVmdCxyaWdodCxmcm9udCxiYWNrLG5vcnRoLHNvdXRoLGVhc3Qsd2VzdCxjZW50ZXIrbWlkZGxlLHRvcCxib3R0b20sb25lLHR3byx0aHJlZSxmb3VyLGZpdmUsc2l4LHNldmVuLGVpZ2h0LG5pbmUtdGVuLHplcm0sbnVsbCx2b2lkLGVtcHR5LGZ1bGwsaGFsZixkb3VibGUtdHJpcGxl';
 
     // Lazy-loaded dictionary Set
     let _dictionaryWordsSet = null;
@@ -1674,7 +1809,8 @@
           ['hack', 'hacker', 'pass', 'strong', 'admin'].forEach(w => _dictionaryWordsSet.add(w));
         } catch (e) {
           console.error('[CASIMIR] Failed to decode dictionary:', e);
-          _dictionaryWordsSet = new Set();
+          _dictionaryWordsSet = new Set(COMMON_PASSWORDS.map(w => String(w).toLowerCase()));
+          ['hack', 'hacker', 'pass', 'strong', 'admin'].forEach(w => _dictionaryWordsSet.add(w));
         }
       }
       return _dictionaryWordsSet;
@@ -1771,11 +1907,10 @@
         // Number row
         '1234567890', '0987654321',
         // Common patterns
-        'qwerty', 'asdf', 'zxcv', 'qweasd', 'qazwsx',
-        // Numpad patterns
-        '789456123', '321654987', '159', '357',
-        // Shift+number symbols
-        '!@#$%^&*()', ')(*&^%$#@!'
+        'qwerty', 'asdf', 'zxcv', 'qazwsx', 'qweasd',
+        '1qaz', '2wsx', '3edc', '4rfv', '5tgb', '6yhn', '7ujm', '8ik', '9ol',
+        'zaq1', 'xsw2', 'cde3', 'vfr4', 'bgt5', 'nhy6', 'mju7', 'ki8', 'lo9',
+        'qwe', 'asd', 'zxc', 'rty', 'fgh', 'vbn', 'uio', 'jkl', 'm'
       ];
 
       for (const seq of keyboardSequences) {
@@ -2124,7 +2259,7 @@
       if (dist.upper > 0) charsetSize += 26;
       if (dist.lower > 0) charsetSize += 26;
       if (dist.numbers > 0) charsetSize += 10;
-      if (dist.symbols > 0) charsetSize += 32;
+      if (dist.symbols > 0) charsetSize += SYMBOL_CHARSET.length;
 
       // Bonus for character variety (but not additive - use logarithmic)
       const activeSets = (dist.upper > 0 ? 1 : 0) + (dist.lower > 0 ? 1 : 0) +
@@ -2364,7 +2499,6 @@
       if (seconds < 31536000 * 100) return Math.round(seconds / 31536000) + (isRu ? ' лет' : ' yrs');
       if (seconds < 31536000 * 1000) return Math.round(seconds / 31536000) + (isRu ? ' лет' : ' yrs');
       if (seconds < 31536000 * 1000000) return Math.round(seconds / 31536000 / 1000) + (isRu ? ' тыс. лет' : 'K yrs');
-      if (seconds < 31536000 * 1000000000) return Math.round(seconds / 31536000 / 1000000) + (isRu ? ' млн лет' : 'M yrs');
       return isRu ? 'миллиарды лет' : 'billions of years';
     }
 
@@ -2412,7 +2546,7 @@
         patterns.push('repeated');
       }
       // Keyboard patterns
-      if (/qwerty|asdf|zxcv|qazwsx|1qaz|2wsx|3edc|4rfv|5tgb|6yhn|7ujm|8ik|9ol/i.test(password)) {
+      if (/qwerty|asdf|zxcv|qazwsx|qweasd/i.test(password)) {
         patterns.push('keyboard');
       }
       // Date patterns
@@ -2625,13 +2759,17 @@
           recs.push({
             type: 'urgent',
             text: lang === 'ru' ? 'Критически короткий пароль! Минимум 12 символов.' : 'Critically short password! Minimum 12 characters.',
-            detail: lang === 'ru' ? `Текущая длина: ${analysis.length} символов. Короткие пароли перебирается за миллисекунды.` : `Current length: ${analysis.length}. Short passwords are cracked in milliseconds.`
+            detail: lang === 'ru'
+              ? `Текущая длина: ${analysis.length} символов. Короткие пароли перебирается за миллисекунды.`
+              : `Current length: ${analysis.length}. Short passwords are cracked in milliseconds.`
           });
         } else {
           recs.push({
             type: 'warn',
             text: lang === 'ru' ? 'Увеличьте длину до 16+ символов для лучшей защиты.' : 'Increase length to 16+ for better security.',
-            detail: lang === 'ru' ? `Текущая длина: ${analysis.length}. Каждый дополнительный символ значительно увеличивает время взлома.` : `Current length: ${analysis.length}. Length exponentially increases crack time.`
+            detail: lang === 'ru'
+              ? `Текущая длина: ${analysis.length}. Каждый дополнительный символ значительно увеличивает время взлома.`
+              : `Current length: ${analysis.length}. Length exponentially increases crack time.`
           });
         }
       }
@@ -2641,7 +2779,9 @@
         recs.push({
           type: 'warn',
           text: lang === 'ru' ? 'Добавьте заглавные буквы (A-Z)' : 'Add uppercase letters (A-Z)',
-          detail: lang === 'ru' ? 'Заглавные буквы увеличивают размер алфавита на 26 символов, значительно усложняя брутфорс.' : 'Uppercase adds 26 chars to alphabet, complicating brute-force.'
+          detail: lang === 'ru'
+            ? 'Заглавные буквы увеличивают размер алфавита на 26 символов, значительно усложняя брутфорс.'
+            : 'Uppercase adds 26 chars to alphabet, complicating brute-force.'
         });
       }
 
@@ -2649,7 +2789,9 @@
         recs.push({
           type: 'warn',
           text: lang === 'ru' ? 'Добавьте строчные буквы (a-z)' : 'Add lowercase letters (a-z)',
-          detail: lang === 'ru' ? 'Строчные буквы расширяют пространство поиска для атакующего.' : 'Lowercase expands the attacker search space.'
+          detail: lang === 'ru'
+            ? 'Строчные буквы расширяют пространство поиска для атакующего.'
+            : 'Lowercase expands the attacker search space.'
         });
       }
 
@@ -2657,7 +2799,9 @@
         recs.push({
           type: 'warn',
           text: lang === 'ru' ? 'Добавьте цифры (0-9)' : 'Add numbers (0-9)',
-          detail: lang === 'ru' ? 'Цифры добавляют 10 дополнительных символов к алфавиту пароля.' : 'Numbers add 10 symbols to your character alphabet.'
+          detail: lang === 'ru'
+            ? 'Цифры добавляют 10 дополнительных символов к алфавиту пароля.'
+            : 'Numbers add 10 symbols to your character alphabet.'
         });
       }
 
@@ -2665,7 +2809,9 @@
         recs.push({
           type: 'warn',
           text: lang === 'ru' ? 'Добавьте специальные символы (!@#$%^&*)' : 'Add special symbols (!@#$%^&*)',
-          detail: lang === 'ru' ? 'Спецсимволы - самый эффективный способ увеличить энтропию. 32 дополнительных символа!' : 'Symbols are the most efficient way to boost entropy!'
+          detail: lang === 'ru'
+            ? 'Спецсимволы - самый эффективный способ увеличить энтропию. 32 дополнительных символа!'
+            : 'Symbols are the most efficient way to boost entropy!'
         });
       }
 
@@ -2695,7 +2841,9 @@
           recs.push({
             type: 'urgent',
             text: lang === 'ru' ? 'Обнаружены клавиатурные последовательности' : 'Keyboard patterns detected',
-            detail: lang === 'ru' ? `Найдены: ${patterns}. Клавиатурные паттерны - первая цель для атак по словарю.` : `Found: ${patterns}. Keyboard sequences are a prime target for dictionary attacks.`
+            detail: lang === 'ru'
+              ? `Найдены: ${patterns}. Клавиатурные паттерны - первая цель для атак по словарю.`
+              : `Found: ${patterns}. Keyboard sequences are a prime target for dictionary attacks.`
           });
         }
 
@@ -2706,7 +2854,9 @@
           recs.push({
             type: 'urgent',
             text: lang === 'ru' ? 'Обнаружены последовательные символы' : 'Sequential characters detected',
-            detail: lang === 'ru' ? `Найдены: ${patterns}. Последовательности типа "abc" или "123" очевидны для атакующего.` : `Found: ${patterns}. Sequential characters like "abc" are trivial to guess.`
+            detail: lang === 'ru'
+              ? `Найдены: ${patterns}. Последовательности типа "abc" или "123" очевидны для атакующего.`
+              : `Found: ${patterns}. Sequential characters like "abc" are trivial to guess.`
           });
         }
 
@@ -2716,7 +2866,9 @@
           recs.push({
             type: 'warn',
             text: lang === 'ru' ? 'Обнаружены повторяющиеся последовательности' : 'Repeated sequences detected',
-            detail: lang === 'ru' ? `Найдено ${repeats.length} повторов. Повторы снижают эффективную длину пароля.` : `Found ${repeats.length} repetitions. They dramatically reduce the effective length.`
+            detail: lang === 'ru'
+              ? `Найдено ${repeats.length} повторов. Повторы снижают эффективную длину пароля.`
+              : `Found ${repeats.length} repetitions. They dramatically reduce the effective length.`
           });
         }
 
@@ -2725,27 +2877,33 @@
           recs.push({
             type: 'warn',
             text: lang === 'ru' ? 'Обнаружены leetspeak-замены' : 'Leetspeak substitutions detected',
-            detail: lang === 'ru' ? 'Замены типа @=a, 3=e очевидны для современных инструментов взлома. Используйте настоящую случайность.' : 'Substitutions like @=a or 3=e are trivial for crackers. Use true randomness.'
+            detail: lang === 'ru'
+              ? 'Замены типа @=a, 3=e очевидны для современных инструментов взлома. Используйте настоящую случайность.'
+              : 'Substitutions like @=a or 3=e are trivial for crackers. Use true randomness.'
           });
         }
 
         // Dictionary words
-        if (findingsByType.dictionary_whole || findingsByType.dictionary_embedded) {
-          const words = findings.filter(f => f.type.startsWith('dictionary')).map(f => f.word).join(', ');
+        if (findingsByType.dictionary) {
+          const words = analysis.findings.filter(f => f.type.startsWith('dictionary')).map(f => f.word).filter(Boolean).join(', ');
           recs.push({
             type: 'urgent',
             text: lang === 'ru' ? 'Обнаружены словарные слова' : 'Dictionary words detected',
-            detail: lang === 'ru' ? `Найдены: ${words}. Словарные атаки проверяют миллионы слов в секунду.` : `Found: ${words}. Dictionary attacks test millions of words per second.`
+            detail: lang === 'ru'
+              ? `Найдены: ${words}. Словарные атаки проверяют миллионы слов в секунду.`
+              : `Found: ${words}. Dictionary attacks test millions of words per second.`
           });
         }
 
         // Normalized Leetspeak Words
-        if (findingsByType.leetspeak_word || findingsByType.leetspeak_embedded) {
-          const words = findings.filter(f => f.type.startsWith('leetspeak_')).map(f => f.originalWord).join(', ');
+        if (findingsByType.leetspeak) {
+          const words = analysis.findings.filter(f => f.type.startsWith('leetspeak_')).map(f => f.originalWord).filter(Boolean).join(', ');
           recs.push({
             type: 'urgent',
             text: lang === 'ru' ? 'Словарное слово, замаскированное leetspeak-заменами' : 'Leetspeak-masked dictionary word(s) detected',
-            detail: lang === 'ru' ? `Нормализатор выявил скрытые слова: ${words}. Такие пароли легко взламываются по гибридным словарям.` : `Analyzer revealed hidden words: ${words}. Easily cracked via hybrid dictionary attacks.`
+            detail: lang === 'ru'
+              ? `Нормализатор выявил скрытые слова: ${words}. Такие пароли легко взламываются по гибридным словарям.`
+              : `Analyzer revealed hidden words: ${words}. Easily cracked via hybrid dictionary attacks.`
           });
         }
 
@@ -2754,7 +2912,9 @@
           recs.push({
             type: 'warn',
             text: lang === 'ru' ? 'Обнаружены паттерны даты' : 'Date patterns detected',
-            detail: lang === 'ru' ? 'Даты, годы, дни рождения - одна из самых распространённых слабостей паролей.' : 'Dates, years, birthdays are among the most common password vulnerabilities.'
+            detail: lang === 'ru'
+              ? 'Даты, годы, дни рождения - одна из самых распространённых слабостей паролей.'
+              : 'Dates, years, birthdays are among the most common password vulnerabilities.'
           });
         }
       }
@@ -2793,13 +2953,17 @@
         recs.push({
           type: 'good',
           text: lang === 'ru' ? 'Отличный пароль! Все рекомендации выполнены.' : 'Excellent password! All recommendations met.',
-          detail: lang === 'ru' ? `Энтропия: ${analysis.entropy.toFixed(1)} бит. Время взлома: ${formatCrackTime(analysis.crackTime?.offlineFast || Infinity)}.` : `Entropy: ${analysis.entropy.toFixed(1)} bits. Crack time: ${formatCrackTime(analysis.crackTime?.offlineFast || Infinity)}.`
+          detail: lang === 'ru'
+            ? `Энтропия: ${analysis.entropy.toFixed(1)} бит. Время взлома: ${formatCrackTime(analysis.crackTime?.offlineFast || Infinity)}.`
+            : `Entropy: ${analysis.entropy.toFixed(1)} bits. Crack time: ${formatCrackTime(analysis.crackTime?.offlineFast || Infinity)}.`
         });
       } else if (recs.length === 0 && analysis.score >= 60) {
         recs.push({
           type: 'good',
           text: lang === 'ru' ? 'Хороший пароль, но можно улучшить' : 'Good password, but could be better',
-          detail: lang === 'ru' ? 'Рассмотрите увеличение длины или добавление специальных символов.' : 'Consider increasing length or adding symbols.'
+          detail: lang === 'ru'
+            ? 'Рассмотрите увеличение длины или добавление специальных символов.'
+            : 'Consider increasing length or adding symbols.'
         });
       }
 
@@ -2968,17 +3132,18 @@
     // Analysis toggle handler
     let analysisVisible = false;
     function toggleAnalysis() {
+      const dict = TRANSLATIONS[settings.lang || 'ru'];
       analysisVisible = !analysisVisible;
       if (analysisVisible) {
         analysisContent.classList.add('visible');
-        analysisToggle.textContent = 'Скрыть';
+        analysisToggle.textContent = dict.hide_btn;
         // Analyze current password if exists
         if (output.value) {
           runAnalysis(output.value);
         }
       } else {
         analysisContent.classList.remove('visible');
-        analysisToggle.textContent = 'Показать';
+        analysisToggle.textContent = dict.show_btn;
       }
     }
 
@@ -3008,68 +3173,45 @@
       const hash = await sha1(password);
       const prefix = hash.substring(0, 5);
       const suffix = hash.substring(5);
-      // Pwned Passwords API uses api.pwnedpasswords.com (not haveibeenpwned.com)
       const url = `https://api.pwnedpasswords.com/range/${prefix}`;
-
-      console.log('[CASIMIR] Pwned Passwords URL:', url);
-      console.log('[CASIMIR] Hash prefix:', prefix, 'suffix:', suffix);
 
       return new Promise((resolve, reject) => {
         const parseResponse = (text) => {
-          // The API returns lines like: SUFFIX:COUNT\r\n
-          // Using a regex makes this bulletproof to line ending issues
           const regex = new RegExp(`^${suffix}:([0-9]+)`, 'm');
           const match = text.match(regex);
 
           if (match && match[1]) {
             const count = parseInt(match[1], 10);
-            return { found: count > 0, count: count, hash, prefix, suffix, matchLine: match[0] };
+            return { found: count > 0, count };
           }
 
-          return { found: false, count: 0, hash, prefix, suffix, matchLine: '—' };
+          return { found: false, count: 0 };
         };
 
-        // Try GM_xmlhttpRequest first (Tampermonkey)
         if (typeof GM_xmlhttpRequest === 'function') {
-          console.log('[CASIMIR] Using GM_xmlhttpRequest for Pwned Passwords');
           GM_xmlhttpRequest({
             method: 'GET',
-            url: url,
-            headers: {
-              'User-Agent': 'CASIMIR-PwdGen/2.0'
-            },
+            url,
+            headers: { 'User-Agent': 'CASIMIR-PwdGen/2.0' },
             onload: (response) => {
-              console.log('[CASIMIR] Pwned response status:', response.status);
               if (response.status === 200 && response.responseText) {
-                console.log('[CASIMIR] Response preview:', response.responseText.substring(0, 100));
                 resolve(parseResponse(response.responseText));
               } else {
                 reject(new Error(`HTTP ${response.status}: ${response.statusText || 'Error'}`));
               }
             },
-            onerror: (error) => {
-              console.error('[CASIMIR] GM_xmlhttpRequest error:', error);
-              reject(new Error('Network error'));
-            },
-            ontimeout: () => {
-              reject(new Error('Request timeout'));
-            },
+            onerror: () => reject(new Error('Network error')),
+            ontimeout: () => reject(new Error('Request timeout')),
             timeout: 15000
           });
         } else if (typeof fetch === 'function') {
-          // Fallback to fetch (CORS may block this)
-          console.log('[CASIMIR] Using fetch for Pwned Passwords');
           fetch(url)
             .then(response => {
-              console.log('[CASIMIR] Fetch response status:', response.status);
               if (!response.ok) throw new Error(`HTTP ${response.status}`);
               return response.text();
             })
             .then(text => resolve(parseResponse(text)))
-            .catch(error => {
-              console.error('[CASIMIR] Fetch error:', error);
-              reject(error);
-            });
+            .catch(error => reject(error));
         } else {
           reject(new Error('No HTTP client available'));
         }
@@ -3083,7 +3225,7 @@
 
       if (error) {
         breachStatus.className = 'pg-breach-status error';
-        breachIcon.textContent = '⚠';
+        breachIcon.textContent = '';
         breachMessage.textContent = lang === 'ru' ? 'Ошибка проверки' : 'Check failed';
         const errorMsg = error.message || String(error);
         breachDetails.textContent = lang === 'ru'
@@ -3095,7 +3237,7 @@
 
       if (result.found) {
         breachStatus.className = 'pg-breach-status compromised';
-        breachIcon.textContent = '✗';
+        breachIcon.textContent = '';
         breachMessage.textContent = dict.t_danger;
 
         const countStr = result.count.toLocaleString();
@@ -3104,23 +3246,9 @@
           : `Found in <span class="pg-breach-count">${countStr}</span> data breaches. <strong>Do not use this password!</strong>`;
       } else {
         breachStatus.className = 'pg-breach-status safe';
-        breachIcon.textContent = '✓';
+        breachIcon.textContent = '';
         breachMessage.textContent = dict.t_safe;
         breachDetails.innerHTML = dict.t_pwn_test;
-      }
-
-      // Add Technical View
-      if (result.hash) {
-        const prefixLabel = lang === 'ru' ? 'Отправлен на HIBP API' : 'Sent to HIBP API';
-        const suffixLabel = lang === 'ru' ? 'Сверяется локально' : 'Checked locally';
-        breachDetails.innerHTML += `
-          <div class="pg-breach-technical">
-            <div>Hash: <span>${result.hash}</span></div>
-            <div>Prefix: <span>${result.prefix}</span> <i>(${prefixLabel})</i></div>
-            <div>Suffix: <span>${result.suffix}</span> <i>(${suffixLabel})</i></div>
-            <div>Match: <span>${result.matchLine}</span></div>
-          </div>
-        `;
       }
     }
 
@@ -3131,7 +3259,6 @@
     async function handleBreachCheck() {
       const lang = settings.lang || 'ru';
       const dict = TRANSLATIONS[lang];
-      // Prioritize manual user input over the generated password
       const password = testInput.value.trim() || output.value;
 
       if (!password) {
@@ -3139,7 +3266,6 @@
         return;
       }
 
-      // Rate limiting check
       const now = Date.now();
       if (now < breachCheckCooldown) {
         const remaining = Math.ceil((breachCheckCooldown - now) / 1000);
@@ -3147,19 +3273,14 @@
         return;
       }
 
-      // Set cooldown
       breachCheckCooldown = now + BREACH_COOLDOWN_MS;
-
-      // Show loading state
       breachBtn.disabled = true;
       breachBtn.classList.add('loading');
       breachBtnText.innerHTML = `<span class="pg-breach-spinner"></span> ${dict.hibp_test}`;
       breachResult.classList.remove('visible');
 
       try {
-        console.log('[CASIMIR] Starting breach check for password length:', password.length);
         const result = await checkPasswordBreach(password);
-        console.log('[CASIMIR] Breach check result:', result);
         updateBreachUI(result, null);
       } catch (error) {
         console.error('[CASIMIR] Breach check failed:', error);
@@ -3175,76 +3296,39 @@
     class QuantumField {
       constructor() {
         this.observerEffect = 0;
-        this.entanglementPool = new Uint32Array(64); // 2048-bit buffer
+        this.entanglementPool = new Uint32Array(64);
         this.poolIndex = 0;
-
-        // Initialize vacuum fluctuations
         this.perturbVacuum();
       }
 
-      // Mix environmental entropy into the pool
       perturbVacuum() {
-        // Heisenberg Uncertainty Principle: Position and momentum cannot be known simultaneously.
-        // We inject high-resolution timing jitter to approximate this uncertainty.
         const t = performance.now();
         const jitter = (t * 1000) % 255;
-
-        // Mix into the current pool index
         this.entanglementPool[this.poolIndex] ^= (Math.floor(t) ^ Math.floor(jitter * 100));
         this.poolIndex = (this.poolIndex + 1) % this.entanglementPool.length;
       }
 
-      // Collapse the wave function to valid byte state
-      // Implements Rejection Sampling to eliminate Modulo Bias
       async collapseWaveFunction(alphabetSize) {
-        // Calculate the "Event Horizon" - the largest multiple of alphabetSize that fits in 256 (byte limit)
-        // If our random byte falls into the "Singularity" (the remainder), we must discard it
-        // to preserve the flat distribution of the multiverse.
-        const maxByte = 256;
-        const singularityZone = maxByte % alphabetSize;
-        const eventHorizon = maxByte - singularityZone;
+        if (!Number.isFinite(alphabetSize) || alphabetSize <= 0) {
+          throw new Error('Invalid alphabet size for rejection sampling');
+        }
 
+        const maxByte = 256;
+        const eventHorizon = maxByte - (maxByte % alphabetSize);
         let observation;
-        let attempts = 0;
 
         while (true) {
-          // Observe a new state from the quantum vacuum
           const buffer = new Uint8Array(1);
-
           if (window.crypto && window.crypto.getRandomValues) {
             window.crypto.getRandomValues(buffer);
             observation = buffer[0];
           } else {
-            // Critical Failure: Vacuum Decay
-            throw new Error("CRITICAL: Vacuum Stability Lost. Window.crypto not found.");
+            throw new Error('CRITICAL: Vacuum Stability Lost. Window.crypto not found.');
           }
 
-          this.perturbVacuum(); // Adding observation cost to entropy
-
-          // Check if the particle is within the stable Event Horizon
-          if (observation < eventHorizon) {
-            // Collapse successful: Map to alphabet space
-            return observation % alphabetSize;
-          }
-
-          // Particle fell into the Singularity (bias zone).
-          // Discard and re-observe.
-          attempts++;
-          if (attempts > 100) {
-            // Extremely unlikely in this reality, but handled for completeness
-            // Force collapse to avoid infinite loop (Cosmic Censorship)
-            return observation % alphabetSize;
-          }
+          this.perturbVacuum();
+          if (observation < eventHorizon) return observation % alphabetSize;
         }
-      }
-
-      // Generate a sequence of collapsed states (indices)
-      async generateEntangledStates(length, alphabetSize) {
-        const states = [];
-        for (let i = 0; i < length; i++) {
-          states.push(await this.collapseWaveFunction(alphabetSize));
-        }
-        return states;
       }
     }
 
@@ -3254,7 +3338,6 @@
     async function fetchQuantumBytes(count) {
       const url = `https://qrng.anu.edu.au/API/jsonI.php?length=${count}&type=uint8`;
 
-      // Prefer GM_xmlhttpRequest if available (bypasses CORS)
       if (typeof GM_xmlhttpRequest === 'function') {
         return new Promise((resolve, reject) => {
           GM_xmlhttpRequest({
@@ -3264,35 +3347,27 @@
             onload(res) {
               try {
                 const json = JSON.parse(res.responseText);
-                if (json.success && json.data && json.data.length >= count) {
-                  resolve(new Uint8Array(json.data));
-                } else {
-                  reject(new Error('ANU QRNG: unexpected response format'));
-                }
+                if (json.success && json.data && json.data.length >= count) resolve(new Uint8Array(json.data));
+                else reject(new Error('ANU QRNG: unexpected response format'));
               } catch (e) { reject(e); }
             },
-            onerror(e) { reject(new Error('ANU QRNG network error')); },
+            onerror() { reject(new Error('ANU QRNG network error')); },
             ontimeout() { reject(new Error('ANU QRNG timeout')); }
           });
         });
       }
 
-      // Fallback to fetch (may fail due to CORS)
       const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
       if (!res.ok) throw new Error(`ANU QRNG HTTP ${res.status}`);
       const json = await res.json();
-      if (json.success && json.data && json.data.length >= count) {
-        return new Uint8Array(json.data);
-      }
+      if (json.success && json.data && json.data.length >= count) return new Uint8Array(json.data);
       throw new Error('ANU QRNG: unexpected response format');
     }
 
     // ---- Password generation
     async function generatePassword() {
-      // Prevent race conditions: if already generating, ignore request
       if (generateBtn.disabled) return;
 
-      // Cooldown for Quantum mode (avoid hammering the public API)
       if (cbQuantum.checked && Date.now() < quantumCooldownEnd) {
         const remaining = Math.ceil((quantumCooldownEnd - Date.now()) / 1000);
         showToast((settings.lang || 'ru') === 'ru' ? `Квантовый поток стабилизируется: ${remaining}с` : `Quantum stream stabilizing: ${remaining}s`, 'warn');
@@ -3309,17 +3384,14 @@
       const u = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
       const l = 'abcdefghijklmnopqrstuvwxyz';
       const n = '0123456789';
-      const s = '!@#$%^&*()_+-=[]{},.?';
+      const s = SYMBOL_CHARSET;
 
       let alphabet = '';
       if (cbUpper.checked) alphabet += u;
       if (cbLower.checked) alphabet += l;
       if (cbNumbers.checked) alphabet += n;
       if (cbSymbols.checked) alphabet += s;
-
-      if (cbNoAmbiguous && cbNoAmbiguous.checked) {
-        alphabet = alphabet.replace(/[il1Lo0O]/g, '');
-      }
+      if (cbNoAmbiguous && cbNoAmbiguous.checked) alphabet = alphabet.replace(/[il1Lo0O]/g, '');
 
       if (!alphabet) {
         showToast((settings.lang || 'ru') === 'ru' ? 'Выберите хотя бы один класс символов!' : 'Select at least one character class!', 'danger');
@@ -3335,11 +3407,9 @@
       generateBtn.disabled = true;
       const dict = TRANSLATIONS[settings.lang || 'ru'];
 
-      // quick “loading” shimmer text
       let loadingTimer = null;
       if (!prefersReducedMotion()) {
         loadingTimer = setInterval(() => {
-          // Uncollapsed superposition visual
           output.value = Array.from({ length }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
         }, 45);
       }
@@ -3348,14 +3418,45 @@
         let password = '';
         let isQuantumAPI = cbQuantum.checked;
         let quantumBytes = null;
+        let quantumByteOffset = 0;
 
-        // 1. Try Quantum Injection via API (ANU QRNG) if requested
+        const refillQuantumBytes = async (minCount = 64) => {
+          const nextBytes = await fetchQuantumBytes(minCount);
+          if (quantumBytes && quantumByteOffset < quantumBytes.length) {
+            const remaining = quantumBytes.slice(quantumByteOffset);
+            const merged = new Uint8Array(remaining.length + nextBytes.length);
+            merged.set(remaining, 0);
+            merged.set(nextBytes, remaining.length);
+            quantumBytes = merged;
+          } else {
+            quantumBytes = nextBytes;
+          }
+          quantumByteOffset = 0;
+        };
+
+        const getUnbiasedIndexFromQuantumBytes = async (alphabetSize) => {
+          if (!Number.isFinite(alphabetSize) || alphabetSize <= 0) throw new Error('Invalid alphabet size for Quantum API sampling');
+          const maxByte = 256;
+          const eventHorizon = maxByte - (maxByte % alphabetSize);
+
+          while (true) {
+            if (!quantumBytes || quantumByteOffset >= quantumBytes.length) {
+              try {
+                await refillQuantumBytes(Math.max(64, alphabetSize * 2));
+              } catch (_) {
+                return quantumField.collapseWaveFunction(alphabetSize);
+              }
+            }
+            const observation = quantumBytes[quantumByteOffset++];
+            if (observation < eventHorizon) return observation % alphabetSize;
+          }
+        };
+
         if (isQuantumAPI) {
           try {
-            quantumBytes = await fetchQuantumBytes(length);
+            quantumBytes = await fetchQuantumBytes(Math.max(64, length * 2));
             quantumCooldownEnd = Date.now() + 5000;
-          } catch (e) {
-            // Fallback to local quantum field simulation
+          } catch (_) {
             badge.style.display = 'inline-block';
             badge.textContent = 'LOCAL';
             badge.style.background = 'var(--warn-bg)';
@@ -3366,7 +3467,6 @@
           }
         }
 
-        // 2. Generate Password
         let firstCharAlphabet = alphabet;
         if (cbFirstLetter && cbFirstLetter.checked) {
           firstCharAlphabet = alphabet.replace(/[^a-zA-Z]/g, '');
@@ -3378,9 +3478,8 @@
 
         if (isQuantumAPI && quantumBytes) {
           for (let i = 0; i < length; i++) {
-            const externalEntropy = quantumBytes[i];
-            const useAlphabet = (i === 0) ? activeFirstAlphabet : activeAlphabet;
-            const collapsedIndex = (externalEntropy) % useAlphabet.length;
+            const useAlphabet = i === 0 ? activeFirstAlphabet : activeAlphabet;
+            const collapsedIndex = await getUnbiasedIndexFromQuantumBytes(useAlphabet.length);
             const selectedChar = useAlphabet.charAt(collapsedIndex);
             password += selectedChar;
 
@@ -3392,7 +3491,6 @@
             }
           }
         } else {
-          // Use our local QuantumField with Rejection Sampling, iteratively due to shrinking alphabet
           const firstIdx = await quantumField.collapseWaveFunction(activeFirstAlphabet.length);
           const firstChar = activeFirstAlphabet.charAt(firstIdx);
           password += firstChar;
@@ -3414,7 +3512,6 @@
           }
         }
 
-        // ensure badge back to quantum label when checkbox stays on
         if (cbQuantum.checked && isQuantumAPI) {
           badge.textContent = 'QUANTUM';
           badge.style.background = 'var(--quantum-bg)';
@@ -3422,12 +3519,10 @@
           badge.style.color = 'var(--quantum)';
         }
 
-        // Clear manual test input to avoid confusion
         if (testInput) testInput.value = '';
-
         runDecryptEffect(password);
         updateStrengthUI(password);
-        runAnalysis(password); // Automatically analyze the new password
+        runAnalysis(password);
       } catch (err) {
         console.error(err);
         showToast(dict.t_err, 'danger');
@@ -3653,9 +3748,13 @@
       if (langToggle) langToggle.textContent = lang === 'ru' ? 'EN' : 'RU';
       // Re-apply quantum visuals to update generate button text
       setQuantumVisuals(cbQuantum.checked);
+      if (analysisToggle) {
+        analysisToggle.textContent = analysisVisible ? dict.hide_btn : dict.show_btn;
+      }
       // Re-render dynamic strings (strength labels, crack time, quality ratings)
       const currentPw = testInput.value.trim() || output.value || '';
       updateStrengthUI(currentPw);
+
       if (currentPw) {
         runAnalysis(currentPw);
       } else {

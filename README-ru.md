@@ -11,7 +11,7 @@
   <a href="https://www.tampermonkey.net/"><img src="https://img.shields.io/badge/Tampermonkey-Supported-green" alt="Tampermonkey"></a>
   <a href="https://www.greasespot.net/"><img src="https://img.shields.io/badge/Greasemonkey-Supported-orange" alt="Greasemonkey"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/meshlg/CASIMIR" alt="License"></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.0.0.0358-blue" alt="Version"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.0.1.1132-blue" alt="Version"></a>
   <br>
   <a href="https://github.com/meshlg/CASIMIR/stargazers"><img src="https://img.shields.io/github/stars/meshlg/CASIMIR?style=social" alt="GitHub Stars"></a>
   <a href="https://github.com/meshlg/CASIMIR/network"><img src="https://img.shields.io/github/forks/meshlg/CASIMIR?style=social" alt="GitHub Forks"></a>
@@ -127,6 +127,7 @@
 | **Локальное хранилище** | Настройки сохраняются локально в браузере |
 | **Без сетевых запросов** | Квантовые случайные числа опциональны |
 | **Защита от IFrame** | Скрипт работает только в главном окне |
+| **CSP/DOM hardening** | Shadow DOM + CSP-safe stylesheets и fail-closed поведение при невозможности безопасного монтирования |
 
 ### От чего CASIMIR НЕ защищает
 

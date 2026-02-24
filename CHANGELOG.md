@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1.1132] - 2026-02-24
+
+### Added
+
+- CSP-safe style injection via constructable stylesheets (`adoptedStyleSheets`) for host and shadow DOM styling.
+- Fail-closed mount behavior when Shadow DOM/style injection is unavailable or blocked.
+- Localized `hide_btn` labels for RU/EN and consistent analysis toggle localization.
+
+### Fixed
+
+- Removed modulo bias in quantum/API-assisted generation by using rejection sampling end-to-end.
+- Eliminated sensitive HIBP diagnostic leakage from logs/UI; breach checks now expose only safe result fields.
+- Restored robust dictionary fallback to `COMMON_PASSWORDS` when dictionary decode fails.
+- Corrected recommendation grouping for dictionary and leetspeak findings.
+- Unified symbol alphabet size calculations through shared `SYMBOL_CHARSET` usage.
+- Hardened Shadow DOM initialization against monkeypatched/hijacked `attachShadow` behavior.
+- Resolved analysis toggle localization update issues on language switch.
+- Fixed hidden-panel visual artifact: ambient glow accents no longer remain visible when panel is closed.
+
+### Changed
+
+- Refined UI visual system for light/dark themes: updated tokens, depth, panel/header styling, buttons, and analysis blocks.
+- Improved panel atmosphere with subtle decorative gradients while preserving responsive layout and existing logic.
+
 ## [1.0.0.0358] - 2026-02-21
 
 ### Initial release
